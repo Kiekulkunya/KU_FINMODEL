@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Radar — AP.BK vs PROPCON</title>
+<style>
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:#0f0f0e; --surface:#1a1a19; --surface2:#232321; --border:#34342f;
+  --text:#f0efec; --text2:#c3c2b7; --muted:#97968d; --grid:#2c2c29; --axis:#4a4a45;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --pos:#3987e5; --neg:#e66767; --mid:#383835;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --bearband:rgba(208,59,59,.16); --focus:#86b6ef;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:#f1f0ec; --surface:#fcfcfb; --surface2:#f4f3f0; --border:#d9d8d2;
+  --text:#0b0b0b; --text2:#52514e; --muted:#6c6b66; --grid:#e8e7e2; --axis:#b9b8b2;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --pos:#2a78d6; --neg:#e34948; --mid:#f0efec;
+  --good:#0a7d0a; --warn:#b77900; --crit:#d03b3b;
+  --bearband:rgba(208,59,59,.10); --focus:#1c5cab;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Thai","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--s1)}
+.mono,code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.num{font-variant-numeric:tabular-nums}
+header.top{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:20;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.06em}
+.brand svg{flex:none}
+.brand small{display:block;font-weight:500;letter-spacing:0;color:var(--text2);font-size:12px}
+.hdr-meta{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--text2);background:var(--surface2);white-space:nowrap}
+.chip b{color:var(--text);font-weight:600}
+.chip.warn{border-color:var(--warn);color:var(--text)}
+.chip.bad{border-color:var(--crit);color:var(--text)}
+.iconbtn{border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:5px 10px;cursor:pointer}
+.iconbtn:hover{border-color:var(--text2)}
+.banner{display:flex;gap:12px;align-items:flex-start;padding:10px 24px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);background:var(--surface2)}
+.banner strong{color:var(--text)}
+.banner .ico{color:var(--warn);font-weight:700}
+nav.tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;position:sticky;top:61px;z-index:15}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:12px 14px;cursor:pointer;color:var(--text2);font-weight:600;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--s1)}
+nav.tabs button:hover{color:var(--text)}
+main{padding:20px 24px 60px;max-width:1500px;margin:0 auto}
+section.tab{display:none} section.tab.active{display:block}
+.grid{display:grid;gap:16px}
+.g-kpi{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g-2{grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)}
+.g-2e{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1050px){.g-2,.g-2e,.g-3{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;min-width:0}
+.card h3{margin:0 0 2px;font-size:14px;font-weight:650;letter-spacing:.01em}
+.card .sub{margin:0 0 12px;font-size:12px;color:var(--muted)}
+.mt{margin-top:16px}
+.kpi .lbl{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.kpi .val{font-size:26px;font-weight:700;margin-top:4px;line-height:1.15}
+.kpi .det{font-size:12px;color:var(--muted);margin-top:4px}
+.up{color:var(--pos)} .dn{color:var(--neg)}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:2px 10px;font-weight:700;font-size:20px}
+.badge.bull{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--text);border:1px solid var(--good)}
+.badge.bear{background:color-mix(in srgb,var(--crit) 20%,transparent);color:var(--text);border:1px solid var(--crit)}
+.badge .ic{font-size:14px}
+.badge.bull .ic{color:var(--good)} .badge.bear .ic{color:var(--crit)}
+.flag{display:inline-flex;gap:4px;align-items:center;font-size:11px;font-weight:600;border-radius:6px;padding:1px 7px;border:1px solid var(--warn);color:var(--text);margin-left:6px;vertical-align:middle}
+.flag.ok{border-color:var(--good)}
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface2);padding:5px 12px;cursor:pointer;color:var(--text2);font-weight:600;font-size:12px}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--s1);color:#fff}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-bottom:6px}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.legend i.box{height:10px;width:12px;border-radius:2px}
+.legend b{color:var(--text);font-weight:600}
+svg text{font-size:11px;fill:var(--muted)}
+svg .grid{stroke:var(--grid);stroke-width:1}
+svg .axisln{stroke:var(--axis);stroke-width:1}
+svg .ref{stroke-width:1.5}
+svg .xh{stroke:var(--text2);stroke-width:1;opacity:0}
+svg .lbl{fill:var(--text2);font-size:12px}
+svg .val{fill:var(--text);font-size:12px;font-weight:600}
+svg .halo{paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}
+#tt{position:fixed;pointer-events:none;z-index:99;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.35);display:none;max-width:320px}
+#tt .r{display:flex;justify-content:space-between;gap:14px;align-items:center}
+#tt .r i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+#tt .h{font-weight:700;margin-bottom:4px}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);font-weight:600;padding:8px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.t td.num,table.t td.mono{white-space:nowrap}
+table.t td{padding:7px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+table.t td.r,table.t th.r{text-align:right}
+table.t tr:hover td{background:var(--surface2)}
+.tscroll{overflow-x:auto}
+.sig{font-weight:700}
+.pill{font-size:11px;border-radius:5px;padding:1px 6px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);white-space:nowrap}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px 16px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text2)}
+.form label span.h{color:var(--muted);font-size:11px}
+input[type=number],select,input[type=text]{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 8px;width:100%}
+input[type=range]{width:100%;accent-color:var(--s1)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.btn{border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+.btn:hover{filter:brightness(1.1)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.scen{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(120px,2fr) 72px;gap:8px 12px;align-items:center;font-size:13px}
+.scen .u{color:var(--muted);font-size:11px}
+.out{font-size:28px;font-weight:700}
+.dq li{margin:4px 0;list-style:none;display:flex;gap:8px}
+.dq{padding:0;margin:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none}
+.dot.ok{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--crit)} .dot.info{background:var(--muted)}
+.drop{display:block;border:1.5px dashed var(--axis);border-radius:12px;padding:22px;text-align:center;color:var(--text2);cursor:pointer}
+.drop.over{border-color:var(--s1);background:var(--surface2)}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;overflow:auto;font-size:12px;line-height:1.45}
+.doc{max-width:980px}
+.doc h2{font-size:20px;margin:28px 0 8px;padding-top:8px;border-top:1px solid var(--border)}
+.doc h2:first-child{border-top:0;margin-top:0}
+.doc h4{margin:16px 0 6px;font-size:14px}
+.doc p,.doc li{color:var(--text2)} .doc strong{color:var(--text)}
+.formula{background:var(--surface2);border-left:3px solid var(--s1);border-radius:6px;padding:10px 14px;margin:10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;color:var(--text);overflow-x:auto;white-space:pre}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.toc a{font-size:12px;text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:3px 10px;color:var(--text2)}
+.note{font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+.cm td{text-align:center;font-weight:600}
+.hidden{display:none!important}
+footer{padding:16px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);background:var(--surface)}
+@media (max-width:760px){header.top{position:static}nav.tabs{top:0}main{padding:14px 12px 40px}}
+@media print{header.top,nav.tabs{position:static}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="var(--s1)" stroke-width="2"/><circle cx="15" cy="15" r="8" fill="none" stroke="var(--s1)" stroke-width="1.2" opacity=".6"/><path d="M15 15 L25 8" stroke="var(--s2)" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="18" r="2" fill="var(--s2)"/></svg>
+    <div>STOCK RADAR<small>AP.BK · AP (Thailand) PCL vs SET PROPCON</small></div>
+  </div>
+  <div class="hdr-meta">
+    <span class="chip" id="chip-src">Data: —</span>
+    <span class="chip">As of <b id="chip-asof">—</b></span>
+    <span class="chip">Model <b id="chip-ver">v—</b></span>
+    <button class="iconbtn" id="themeBtn" aria-label="Toggle light/dark theme">◐ Theme</button>
+  </div>
+</header>
+<div class="banner" id="banner" role="note"></div>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="overview" aria-selected="true">Radar Overview</button>
+  <button role="tab" data-tab="drivers" aria-selected="false">Drivers &amp; Impact</button>
+  <button role="tab" data-tab="regime" aria-selected="false">Bull / Bear Signal</button>
+  <button role="tab" data-tab="data" aria-selected="false">Data</button>
+  <button role="tab" data-tab="method" aria-selected="false">Methodology &amp; Governance</button>
+</nav>
+<main>
+<!-- ================= OVERVIEW ================= -->
+<section class="tab active" id="tab-overview">
+  <div class="grid g-kpi" id="kpis"></div>
+  <div class="grid g-2 mt">
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><div><h3>AP.BK vs PROPCON vs SET — indexed to 100</h3><p class="sub">Shaded bands = model “Bear” regime (out-of-sample). One axis, common base.</p></div>
+      <div class="seg" data-range-group></div></div>
+      <div id="ch-price"></div>
+    </div>
+    <div class="card">
+      <h3>Driver Radar — what is moving AP?</h3>
+      <p class="sub">|Standardised β| from rolling OLS of AP daily returns on same-day factors. Current window vs prior window.</p>
+      <div id="ch-radar"></div>
+    </div>
+  </div>
+  <div class="grid g-2e mt">
+    <div class="card">
+      <h3>Today’s move, decomposed</h3>
+      <p class="sub" id="decomp-sub">β × today’s factor move (percentage points of AP return).</p>
+      <div id="ch-decomp"></div>
+    </div>
+    <div class="card">
+      <h3>What is pushing P(Bear) today</h3>
+      <p class="sub">Standardised feature × logit coefficient. Right = raises Bear probability.</p>
+      <div id="ch-contrib"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DRIVERS ================= -->
+<section class="tab" id="tab-drivers">
+  <div class="card">
+    <h3>Factor attribution &amp; financial impact</h3>
+    <p class="sub" id="attr-sub"></p>
+    <div class="tscroll" id="attr-table"></div>
+    <p class="note">β = AP % move per 1 unit of the factor (same day). Impact of a 1σ day = β × factor’s daily σ. THB/share and market-cap impacts use the latest close and the share count below. <b>Bold t</b> = |t| ≥ 2. Ridge-stabilised OLS; SEs are not HAC-adjusted — treat t-stats as indicative.</p>
+    <div class="row"><label class="note">Shares outstanding (mn) <input type="number" id="inp-shares" step="1" style="width:110px"></label><span class="note">Default 3,146 mn — verify against the latest SET filing.</span></div>
+  </div>
+  <div class="grid g-2e mt">
+    <div class="card">
+      <h3>Scenario simulator</h3>
+      <p class="sub">Apply same-day shocks; estimate AP’s move from current βs. Band = ±1σ of residual (idiosyncratic) noise.</p>
+      <div class="row" id="scen-presets" style="margin-bottom:12px"></div>
+      <div class="scen" id="scen-grid"></div>
+      <div class="grid g-3 mt" id="scen-out"></div>
+    </div>
+    <div class="card">
+      <h3>Rolling sensitivity</h3>
+      <p class="sub">Standardised β through time — is the driver stable or rotating?</p>
+      <div class="filters"><select id="sel-roll" style="max-width:260px"></select><div class="seg" data-range-group></div></div>
+      <div id="ch-roll"></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <h3>Valuation channel — cost of capital → justified P/BV</h3>
+    <p class="sub">Links the daily rate driver to the multiple: K<sub>e</sub> = r<sub>f</sub> + β·ERP; justified P/BV = (ROE − g)/(K<sub>e</sub> − g). Inputs are illustrative — replace with your own estimates.</p>
+    <div class="form" id="val-form"></div>
+    <div class="grid g-kpi mt" id="val-out"></div>
+  </div>
+</section>
+
+<!-- ================= REGIME ================= -->
+<section class="tab" id="tab-regime">
+  <div class="card">
+    <h3>Signal parameters</h3>
+    <p class="sub">Changing these re-runs the full walk-forward. Defaults were fixed before looking at out-of-sample results; tuning them on this screen is in-sample optimisation — see Governance.</p>
+    <div class="form" id="param-form"></div>
+    <div class="row mt"><button class="btn primary" id="btn-apply">Re-run model</button><button class="btn" id="btn-reset">Reset defaults</button><span class="note" id="theta-note"></span></div>
+  </div>
+  <div class="grid g-kpi mt" id="reg-kpis"></div>
+  <div class="card mt">
+    <div class="row" style="justify-content:space-between"><div><h3>P(Bear) — out-of-sample, walk-forward</h3><p class="sub">Thin line = raw probability; thick = smoothed. Horizontal lines = enter / exit thresholds (hysteresis).</p></div><div class="seg" data-range-group></div></div>
+    <div id="ch-pbear"></div>
+  </div>
+  <div class="grid g-2e mt">
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><div><h3>Regime filter vs buy-and-hold (price only)</h3><p class="sub" id="bt-sub"></p></div></div>
+      <div id="ch-equity"></div>
+      <div class="tscroll" id="bt-table"></div>
+    </div>
+    <div class="card">
+      <h3>Calibration — predicted vs realised Bear frequency</h3>
+      <p class="sub">Quintiles of out-of-sample P(Bear). On the diagonal = well calibrated.</p>
+      <div id="ch-cal"></div>
+      <div class="tscroll" id="cm-table"></div>
+    </div>
+  </div>
+  <div class="grid g-2e mt">
+    <div class="card">
+      <h3>Latest model coefficients (standardised)</h3>
+      <p class="sub">Positive = feature raises P(Bear). L2-regularised logistic regression.</p>
+      <div id="ch-coef"></div>
+    </div>
+    <div class="card">
+      <h3>Model card</h3>
+      <div id="model-card"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DATA ================= -->
+<section class="tab" id="tab-data">
+  <div class="grid g-2e">
+    <div class="card">
+      <h3>Load data</h3>
+      <p class="sub">One merged daily CSV. Required: date, ap_close, propcon_close, set_close. Optional: ap_volume, th10y, us10y, usdthb, brent, foreign_net. Thai BE dates (e.g. 2569) are converted.</p>
+      <label class="drop" id="drop" tabindex="0">Drop CSV here or click to choose<input type="file" id="file" accept=".csv,text/csv" class="hidden"></label>
+      <div class="row mt">
+        <button class="btn" id="btn-demo">Load synthetic demo</button>
+        <button class="btn" id="btn-template">Download CSV template</button>
+        <button class="btn" id="btn-export">Export current data</button>
+      </div>
+      <p class="note" id="load-msg"></p>
+    </div>
+    <div class="card">
+      <h3>Column mapping</h3>
+      <div class="tscroll" id="map-table"></div>
+    </div>
+  </div>
+  <div class="grid g-2e mt">
+    <div class="card"><h3>Data-quality checks</h3><ul class="dq" id="dq"></ul></div>
+    <div class="card"><h3>Latest rows</h3><div class="tscroll" id="tail-table"></div></div>
+  </div>
+  <div class="card mt">
+    <h3>Build the CSV (Python helper) &amp; run on localhost</h3>
+    <p class="sub">Browsers block direct calls to Yahoo Finance (CORS), so data is pulled once with Python and loaded here. PROPCON and Thai 10Y are not reliably on Yahoo — export them from SETSMART / ThaiBMA / Bloomberg / Refinitiv and merge on date. Foreign net buy comes from SET investor-type trading data.</p>
+<pre id="py-snippet"></pre>
+    <p class="note">Run locally: save this .html file, then either double-click it, or serve it with <code>python -m http.server 8000</code> in the same folder and open <code>http://localhost:8000/stock_radar_ap_propcon.html</code>. No internet connection or external libraries required.</p>
+  </div>
+</section>
+
+<!-- ================= METHODOLOGY ================= -->
+<section class="tab" id="tab-method">
+<div class="doc card">
+  <div class="toc"><a href="#m1">1 · Business problem</a><a href="#m2">2 · Financial implications</a><a href="#m3">3 · Daily drivers</a><a href="#m4">4 · Dashboard</a><a href="#m5">5 · Bull/Bear regime</a><a href="#m6">6 · AI governance</a></div>
+
+  <h2 id="m1">1 · Business problem statement</h2>
+  <p><strong>AP (Thailand) PCL</strong> is one of Thailand’s largest listed residential developers — a low-rise-led (townhouse / single-detached) model with condominiums developed largely through joint ventures — and a meaningful constituent of the SET <strong>PROPCON</strong> (Property &amp; Construction) industry index. Its daily price is a blend of four forces that a portfolio manager needs to separate: <em>market beta</em> (SET), <em>sector rotation</em> (PROPCON vs SET), <em>rates and credit conditions</em> (Thai and US yields acting through mortgage affordability, bank rejection rates and cost of capital), and <em>flows and sentiment</em> (foreign net buying, participation).</p>
+  <p><strong>Why daily, and why it matters:</strong></p>
+  <ul>
+    <li><strong>Portfolio management</strong> — decomposing each day’s move into systematic vs idiosyncratic shows whether active risk in AP is being paid for (stock-specific alpha) or is an unintended macro/rate bet that could be hedged more cheaply via the index or sector.</li>
+    <li><strong>Risk mitigation</strong> — residential developers behave like long-duration, rate-sensitive assets with negatively skewed drawdowns in risk-off episodes. A daily regime signal and rolling sensitivities flag when exposure should be cut or hedged <em>before</em> a drawdown compounds.</li>
+    <li><strong>Alpha generation</strong> — large residuals (moves unexplained by factors) mark news or flow dislocations that tend to partially revert or trend; regime timing can improve risk-adjusted returns versus static holding.</li>
+  </ul>
+  <p><strong>The decision question the tool answers each morning:</strong> <em>“What moved AP yesterday, how much of it was systematic, what would a plausible shock do to price and market cap, and is the risk regime turning?”</em></p>
+
+  <h2 id="m2">2 · Financial implications of driver shifts</h2>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Driver shift</th><th>Transmission channel</th><th>Tangible financial outcome</th><th>Where to see it</th></tr></thead>
+    <tbody>
+      <tr><td>Thai 10Y / policy rate ↑</td><td>Mortgage rates ↑ → affordability ↓, mortgage rejection ↑, presale-to-transfer conversion ↓; developer cost of debt ↑; risk-free in K<sub>e</sub> ↑</td><td>Revenue/backlog risk, finance cost ↑, <strong>multiple compression</strong> (P/BV, P/E) via higher K<sub>e</sub></td><td>β to TH 10Y; valuation channel calculator</td></tr>
+      <tr><td>US 10Y ↑</td><td>EM risk premium ↑, foreign outflows, THB pressure</td><td>Higher equity risk premium → lower justified multiple; liquidity discount</td><td>β to US 10Y; foreign-flow β</td></tr>
+      <tr><td>USD/THB ↑ (THB weaker)</td><td>USD-based investors’ returns ↓ → outflows; imported materials cost ↑; foreign condo demand may improve</td><td>Mixed: flow-driven de-rating vs demand support; margin pressure on imported inputs</td><td>β to USD/THB</td></tr>
+      <tr><td>Brent ↑</td><td>Construction material, logistics and inflation pass-through; inflation → rate expectations</td><td><strong>Gross-margin compression</strong> on fixed-price presales; second-round rate effect</td><td>β to Brent; scenario “oil spike”</td></tr>
+      <tr><td>SET market move</td><td>Systematic beta</td><td>AP move ≈ β × SET move; drives tracking error vs benchmark</td><td>β (Market); 250-day CAPM β</td></tr>
+      <tr><td>Sector spread (PROPCON − SET)</td><td>Policy catalysts (LTV relaxation, transfer/mortgage-fee cuts), sector rotation, peer news</td><td>Sector re-rating independent of the market</td><td>β (Sector spread); rel. strength features</td></tr>
+      <tr><td>Foreign net selling ↑</td><td>Liquidity demand exceeds local absorption</td><td>Intraday volatility ↑, wider spreads, temporary price impact</td><td>Foreign-flow β; P(Bear) contributions</td></tr>
+      <tr><td>Realised volatility ↑</td><td>Risk budgets, VaR limits</td><td>Position size must fall (vol-targeting: size ∝ target σ / realised σ)</td><td>20-day vol KPI</td></tr>
+    </tbody></table></div>
+  <div class="formula">Financial impact of a shock:   ΔP/P ≈ Σⱼ βⱼ · shockⱼ        ΔPrice (THB) = P · ΔP/P        ΔMarket cap = ΔPrice · Shares outstanding
+Valuation channel:            Kₑ = r_f + β_SET · ERP        Justified P/BV = (ROE − g) / (Kₑ − g)
+Example (illustrative):       ROE 12%, g 3%, Kₑ 11.00% → P/BV 1.125;   Kₑ +25bp → 1.091  (≈ −3.0% fair value)</div>
+
+  <h2 id="m3">3 · Feature selection — daily drivers</h2>
+  <p>Variables are pre-specified (not data-mined), observable by the close of day <em>t</em>, and grouped so the radar shows <em>which family</em> of risk is in charge. “Model” = used in this prototype when the column is supplied.</p>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Category</th><th>Variable</th><th>Transform</th><th>Exp. sign on AP</th><th>Source</th><th>Model</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="6">Macroeconomic</td><td>Thai 10Y government bond yield</td><td>Daily Δ (bp); 5-day Δ</td><td>−</td><td>ThaiBMA / Bloomberg</td><td>Attribution + signal</td></tr>
+      <tr><td>US 10Y Treasury yield</td><td>Daily Δ (bp); 5-day Δ</td><td>−</td><td>Yahoo ^TNX / FRED</td><td>Attribution + signal</td></tr>
+      <tr><td>USD/THB</td><td>Daily %; 5-day %</td><td>− (flows)</td><td>Yahoo THB=X / BOT</td><td>Attribution + signal</td></tr>
+      <tr><td>Brent crude</td><td>Daily %; 20-day %</td><td>−</td><td>Yahoo BZ=F</td><td>Attribution + signal</td></tr>
+      <tr><td>BOT MPC decision days, CPI release days</td><td>Event dummies</td><td>±</td><td>BOT calendar</td><td>Recommended (manual)</td></tr>
+      <tr><td>SET index (market)</td><td>Daily %; 20-day momentum</td><td>+</td><td>SET / Yahoo ^SET.BK</td><td>Attribution + signal</td></tr>
+      <tr><td rowspan="4">Sector-specific</td><td>PROPCON index</td><td>Spread vs SET (daily); 20-day relative</td><td>+</td><td>SETSMART / Bloomberg</td><td>Attribution + signal</td></tr>
+      <tr><td>AP relative strength vs PROPCON</td><td>20-day return differential</td><td>+ (momentum)</td><td>Derived</td><td>Signal</td></tr>
+      <tr><td>Peer basket (e.g. SPALI, LH, QH, SIRI, PSH)</td><td>Equal-weight daily %</td><td>+</td><td>Yahoo *.BK</td><td>Recommended</td></tr>
+      <tr><td>Policy &amp; company catalysts (LTV, fee cuts, presales/transfer releases, results, XD dates)</td><td>Event dummies</td><td>±</td><td>BOT, MOF, SET news</td><td>Recommended (manual)</td></tr>
+      <tr><td rowspan="6">Technical momentum</td><td>Momentum 5d / 20d</td><td>Return</td><td>+ / mean-revert</td><td>Derived</td><td>Signal</td></tr>
+      <tr><td>Distance from SMA50</td><td>P / SMA50 − 1</td><td>+</td><td>Derived</td><td>Signal</td></tr>
+      <tr><td>RSI(14)</td><td>(RSI − 50)/50</td><td>± (overbought/oversold)</td><td>Derived</td><td>Signal</td></tr>
+      <tr><td>MACD histogram</td><td>÷ price</td><td>+</td><td>Derived</td><td>Signal</td></tr>
+      <tr><td>Realised volatility 20d</td><td>Annualised σ of log returns</td><td>− (risk-off)</td><td>Derived</td><td>Signal; label scaling</td></tr>
+      <tr><td>Gap / ATR (needs OHLC)</td><td>Open vs prior close</td><td>±</td><td>Exchange</td><td>Recommended</td></tr>
+      <tr><td rowspan="4">Market sentiment &amp; flows</td><td>Foreign net buy (SET, investor-type data)</td><td>z-score vs 60d; 5-day sum z</td><td>+</td><td>SET market statistics</td><td>Attribution + signal</td></tr>
+      <tr><td>AP volume</td><td>log-volume z-score vs 20d</td><td>± (capitulation / breakout)</td><td>Exchange</td><td>Signal</td></tr>
+      <tr><td>NVDR / short-sale volume in AP</td><td>Share of volume</td><td>±</td><td>SET</td><td>Recommended</td></tr>
+      <tr><td>News / social sentiment (Thai NLP)</td><td>Daily score</td><td>+</td><td>Vendor</td><td>Recommended (validate first)</td></tr>
+    </tbody></table></div>
+
+  <h2 id="m4">4 · Interactive dashboard prototype</h2>
+  <p>This file <em>is</em> the prototype: a single, dependency-free HTML/CSS/JavaScript application (no CDN, no server) that runs offline or on localhost. Architecture:</p>
+  <ul>
+    <li><strong>Data layer</strong> — CSV ingestion with header auto-mapping, Thai BE date handling, forward-fill (≤3 days, never back-fill), and data-quality checks (coverage, stale prices, 6σ outliers, calendar gaps).</li>
+    <li><strong>Attribution engine</strong> — rolling OLS (default 120 days) of AP daily returns on same-day factors; standardised βs feed the radar; βs × σ convert into % / THB / market-cap impacts and drive the scenario simulator.</li>
+    <li><strong>Regime engine</strong> — walk-forward, purged and embargoed L2-logistic model producing an out-of-sample P(Bear); EMA smoothing; cost-based threshold with hysteresis; backtest with execution lag and transaction costs.</li>
+    <li><strong>Presentation</strong> — high-contrast dark/light themes, colour-blind-validated palette, every chart hoverable, status never encoded by colour alone (icon + label).</li>
+  </ul>
+  <p>Production path: schedule the Python helper (Data tab) after the SET close (~17:30 ICT), write the CSV to a shared folder, and open this page — or port the engine to Python/Streamlit with a database when multiple users or intraday data are needed.</p>
+
+  <h2 id="m5">5 · Regime classification — Bull vs Bear signal</h2>
+  <h4>Step 1 — Define the event (label)</h4>
+  <div class="formula">yₜ = 1[ ln(P₍ₜ₊₁₊ₕ₎ / P₍ₜ₊₁₎) &lt; −k · σ̂ₜ · √h ]       (Bear = 1)
+
+h = 10 trading days, k = 0.5, σ̂ₜ = 20-day st.dev. of daily log returns known at close t.
+The window starts at t+1 because a signal formed at close t can only be traded at t+1.</div>
+  <p>Scaling by σ̂ means “Bear” is a <em>meaningful</em> decline relative to current volatility, not noise; with k = 0.5 the base rate is roughly 30–40%.</p>
+  <h4>Step 2 — Convert features into a probability</h4>
+  <div class="formula">zⱼ,ₜ = clip( (xⱼ,ₜ − μⱼ,train) / σⱼ,train , −5, 5 )
+P(Bear)ₜ = σ( w₀ + Σⱼ wⱼ zⱼ,ₜ ),   σ(u) = 1 / (1 + e⁻ᵘ)
+ŵ = argmin  −Σ [ y log p + (1−y) log(1−p) ] + λ₂ Σⱼ≥₁ wⱼ²      (λ₂ = 20, intercept unpenalised)</div>
+  <p>Walk-forward: refit every 20 days on an expanding window. A model used on day <em>b</em> is trained only on t ≤ b − 1 − h − e (purge h for the overlapping label, plus embargo e = 5 days). Smoothing: P̃ₜ = α·Pₜ + (1 − α)·P̃ₜ₋₁ with α = 2/(s+1), s = 3.</p>
+  <h4>Step 3 — Cost-based threshold</h4>
+  <div class="formula">Declare Bear  ⇔  P̃ · C_FN  &gt;  (1 − P̃) · C_FP   ⇔   P̃ ≥ θ* = C_FP / (C_FP + C_FN) = 1 / (1 + λ),   λ = C_FN / C_FP
+
+C_FN = cost of staying long into a Bear (expected drawdown)
+C_FP = cost of a false alarm (missed upside + round-trip costs + forgone dividend carry)
+
+Default λ = 1.5  →  θ* = 0.40
+Hysteresis b = 0.05:  enter Bear when P̃ ≥ θ* + b = 0.45 ;  return to Bull when P̃ ≤ θ* − b = 0.35</div>
+  <h4>Risk-management rationale for the cut-off</h4>
+  <ul>
+    <li><strong>Asymmetric loss (λ &gt; 1).</strong> Losses compound (−20% needs +25% to recover), Thai property names show negatively skewed, liquidity-gapped sell-offs, and long-only mandates are judged on drawdown. The dashboard also reports a <em>data-implied</em> λ̂ = E[loss | Bear] / E[gain | not Bear, gain &gt; 0] from pre-out-of-sample history as a sanity check — currently <b id="m-lhat">—</b>.</li>
+    <li><strong>Above the base rate.</strong> θ* = 0.40 sits slightly above the typical Bear base rate, so the model must show evidence beyond the prior before de-risking.</li>
+    <li><strong>Hysteresis cuts whipsaw.</strong> A ±0.05 band and EMA smoothing reduce flip-flopping that would otherwise be eaten by ~15 bp/side trading costs.</li>
+    <li><strong>Set ex-ante, not optimised.</strong> λ and b are policy choices fixed before testing; optimising them on the backtest would overfit. Change λ to reflect your mandate (e.g. λ = 2 → θ* = 0.33 for a capital-preservation book; λ = 1 → θ* = 0.50 for a benchmark-relative book).</li>
+    <li><strong>Action mapping.</strong> Bear → reduce to underweight / hedge with SET50 futures; Bull → hold target weight. A continuous alternative is size = target × (1 − P̃), capped by vol-target limits.</li>
+  </ul>
+
+  <h2 id="m6">6 · AI governance, ethics &amp; responsible innovation</h2>
+  <h4>Model risk management</h4>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Risk</th><th>Control built into this tool</th><th>Control required before production</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Look-ahead bias</strong></td><td>Features use data ≤ close t; trade executed at t+1, earns t+2; macro gaps forward-filled only; standardisation uses training statistics only</td><td>Point-in-time data (as-published, not revised); verify publication timing of foreign-flow data</td></tr>
+      <tr><td><strong>Data leakage</strong></td><td>Purged + embargoed walk-forward; no random K-fold on overlapping labels; metrics computed only on out-of-sample predictions</td><td>Independent code review of the label/feature alignment</td></tr>
+      <tr><td><strong>Overfitting</strong></td><td>Small pre-specified feature set; L2 penalty; thresholds set by cost policy, not optimised; Brier skill vs climatology and AUC shown; skill flag: ✓ when AUC ≥ 0.58 and Brier skill low-skill flag when AUC &lt; 0.55 or BSS ≤ 0gt; 0.01; “marginal” when AUC ≥ 0.55; otherwise “low”</td><td>Deflated Sharpe / multiple-testing adjustment; stability across sub-periods; challenger models</td></tr>
+      <tr><td><strong>Non-stationarity</strong></td><td>Rolling βs and current-vs-prior radar expose driver rotation; periodic refits</td><td>Drift monitoring (PSI on features, rolling AUC); retrain triggers; kill-switch if live AUC &lt; 0.5 over 60 days</td></tr>
+      <tr><td><strong>Corporate actions &amp; survivorship</strong></td><td>6σ outlier and stale-price checks</td><td>Use adjusted prices (XD/XR); backtests on total return; universe defined point-in-time</td></tr>
+      <tr><td><strong>Statistical inference</strong></td><td>Ridge-stabilised OLS; t-stats marked indicative</td><td>HAC (Newey-West) standard errors; multicollinearity diagnostics (SET vs PROPCON)</td></tr>
+    </tbody></table></div>
+  <h4>Ethical guardrails</h4>
+  <ul>
+    <li><strong>Decision support, human in the loop.</strong> The signal informs a PM’s judgement; it does not place orders. Any automation needs separate approval, limits and a kill-switch.</li>
+    <li><strong>Not investment advice.</strong> If outputs are shared with clients, check with compliance whether this constitutes investment advice requiring licensing under Thai SEC rules, and apply suitability and fair-treatment standards.</li>
+    <li><strong>Market integrity.</strong> No material non-public information may be loaded; information barriers and restricted lists apply. Do not broadcast signals on a mid-cap in a way that could move the price or front-run client orders.</li>
+    <li><strong>Conflicts of interest.</strong> Disclose house positions in AP or related underwriting/advisory relationships when outputs are distributed.</li>
+    <li><strong>Data rights &amp; privacy.</strong> Use licensed market data within its terms (Yahoo Finance is for personal use); no personal data is processed, so PDPA exposure is minimal, but keep access logs.</li>
+  </ul>
+  <h4>Interface transparency disclosures (implemented)</h4>
+  <ul>
+    <li>Persistent banner stating data source (synthetic vs user CSV), as-of date and “not investment advice”.</li>
+    <li>Signal shown as a <em>probability</em> with its out-of-sample AUC / Brier skill beside it, and an explicit low-skill flag.</li>
+    <li>Model card: version, parameters, training window, refit count, OOS sample size.</li>
+    <li>Explainability: today’s factor decomposition and per-feature contributions to P(Bear).</li>
+    <li>Backtest labelled price-only, gross of dividends, with execution lag and costs stated.</li>
+  </ul>
+  <h4>Lifecycle</h4>
+  <p>Three lines: developer documents and tests → independent validator reproduces results and challenges assumptions → users sign off on intended use and limits. Version every change to data, features, parameters and code; re-validate annually or on any material change.</p>
+</div>
+</section>
+</main>
+<footer>Stock Radar · AP.BK / PROPCON · Analytical decision-support tool — not investment advice. Probabilities are model estimates and can be wrong; past patterns may not persist. <span id="foot-ver"></span></footer>
+<div id="tt" role="tooltip"></div>
+<script>
+/* ==========================================================================
+   STOCK RADAR ENGINE — data, features, attribution OLS, walk-forward logit,
+   regime state machine, backtest. Pure functions, no DOM.
+   ========================================================================== */
+const ENGINE_VERSION = "1.0.0";
+const TD = 245; // Thai trading days per year (approx.)
+
+/* ---------- small utils ---------- */
+const isNum = v => typeof v === "number" && isFinite(v);
+const mean = a => { let s = 0, n = 0; for (const v of a) if (isNum(v)) { s += v; n++; } return n ? s / n : NaN; };
+const sd = a => { const m = mean(a); let s = 0, n = 0; for (const v of a) if (isNum(v)) { s += (v - m) ** 2; n++; } return n > 1 ? Math.sqrt(s / (n - 1)) : NaN; };
+const sigmoid = z => 1 / (1 + Math.exp(-Math.max(-35, Math.min(35, z))));
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function randn(rng) { let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const fmtDate = d => d.toISOString().slice(0, 10);
+
+/* ---------- linear algebra ---------- */
+function invert(A) {
+  const n = A.length, M = A.map((r, i) => { const row = r.slice(); for (let j = 0; j < n; j++) row.push(i === j ? 1 : 0); return row; });
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (Math.abs(M[p][c]) < 1e-12) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    const d = M[c][c]; for (let k = 0; k < 2 * n; k++) M[c][k] /= d;
+    for (let r = 0; r < n; r++) { if (r === c) continue; const f = M[r][c]; if (f === 0) continue; for (let k = 0; k < 2 * n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map(r => r.slice(n));
+}
+const matVec = (A, v) => A.map(r => r.reduce((s, x, j) => s + x * v[j], 0));
+
+/** OLS with optional ridge (intercept unpenalised). X rows include leading 1. */
+function ols(X, y, ridge = 0) {
+  const n = X.length, p = X[0].length;
+  const XtX = Array.from({ length: p }, () => new Array(p).fill(0)), Xty = new Array(p).fill(0);
+  for (let i = 0; i < n; i++) { const r = X[i]; for (let a = 0; a < p; a++) { Xty[a] += r[a] * y[i]; for (let b = a; b < p; b++) XtX[a][b] += r[a] * r[b]; } }
+  for (let a = 0; a < p; a++) for (let b = 0; b < a; b++) XtX[a][b] = XtX[b][a];
+  for (let a = 1; a < p; a++) XtX[a][a] += ridge;
+  const inv = invert(XtX); if (!inv) return null;
+  const beta = matVec(inv, Xty);
+  let ssr = 0; const ym = mean(y); let sst = 0;
+  for (let i = 0; i < n; i++) { const e = y[i] - X[i].reduce((s, x, j) => s + x * beta[j], 0); ssr += e * e; sst += (y[i] - ym) ** 2; }
+  const s2 = ssr / Math.max(1, n - p);
+  const se = inv.map((r, j) => Math.sqrt(Math.max(0, s2 * r[j])));
+  return { beta, se, t: beta.map((b, j) => se[j] > 0 ? b / se[j] : 0), r2: sst > 0 ? 1 - ssr / sst : 0, residSd: Math.sqrt(s2), n };
+}
+
+/** L2-regularised logistic regression via Newton-Raphson (IRLS). X standardised, leading 1. */
+function logitFit(X, y, l2 = 1.0) {
+  const n = X.length, p = X[0].length;
+  const base = Math.min(0.99, Math.max(0.01, mean(y)));
+  let w = new Array(p).fill(0); w[0] = Math.log(base / (1 - base));
+  for (let it = 0; it < 30; it++) {
+    const g = new Array(p).fill(0), H = Array.from({ length: p }, () => new Array(p).fill(0));
+    for (let i = 0; i < n; i++) {
+      const r = X[i]; const mu = sigmoid(r.reduce((s, x, j) => s + x * w[j], 0)); const wt = mu * (1 - mu);
+      for (let a = 0; a < p; a++) { g[a] += r[a] * (y[i] - mu); for (let b = a; b < p; b++) H[a][b] += wt * r[a] * r[b]; }
+    }
+    for (let a = 0; a < p; a++) for (let b = 0; b < a; b++) H[a][b] = H[b][a];
+    for (let a = 1; a < p; a++) { g[a] -= l2 * w[a]; H[a][a] += l2; }
+    const Hi = invert(H); if (!Hi) break;
+    const step = matVec(Hi, g); w = w.map((v, j) => v + step[j]);
+    if (Math.max(...step.map(Math.abs)) < 1e-7) break;
+  }
+  return w;
+}
+
+/** Mann-Whitney AUC with tie handling. */
+function auc(scores, labels) {
+  const idx = scores.map((s, i) => i).sort((a, b) => scores[a] - scores[b]);
+  const ranks = new Array(scores.length);
+  for (let i = 0; i < idx.length;) { let j = i; while (j + 1 < idx.length && scores[idx[j + 1]] === scores[idx[i]]) j++; const r = (i + j) / 2 + 1; for (let k = i; k <= j; k++) ranks[idx[k]] = r; i = j + 1; }
+  let nP = 0, nN = 0, sumR = 0; labels.forEach((l, i) => { if (l === 1) { nP++; sumR += ranks[i]; } else nN++; });
+  return nP && nN ? (sumR - nP * (nP + 1) / 2) / (nP * nN) : NaN;
+}
+
+/* ---------- column schema ---------- */
+const SCHEMA = [
+  { key: "date", label: "Date", req: true, alias: ["date", "datetime", "time", "tradingdate", "วันที่"] },
+  { key: "ap", label: "AP.BK close (THB)", req: true, alias: ["apclose", "apbk", "ap", "apbkclose", "apprice", "apbkadjclose"] },
+  { key: "propcon", label: "PROPCON index close", req: true, alias: ["propconclose", "propcon", "propconbk", "propconindex", "sector", "sectorclose"] },
+  { key: "set", label: "SET index close", req: true, alias: ["setclose", "set", "setindex", "setbk", "setbkclose"] },
+  { key: "apvol", label: "AP.BK volume (shares)", req: false, alias: ["apvolume", "apbkvolume", "volume", "apvol"] },
+  { key: "th10y", label: "Thai 10Y gov bond yield (%)", req: false, alias: ["th10y", "thai10y", "thbond10y", "th10yyield", "thgb10y"] },
+  { key: "us10y", label: "US 10Y Treasury yield (%)", req: false, alias: ["us10y", "ust10y", "tnx", "us10yyield"] },
+  { key: "usdthb", label: "USD/THB", req: false, alias: ["usdthb", "thb", "thbx", "fx", "usdthbclose"] },
+  { key: "brent", label: "Brent crude (USD/bbl)", req: false, alias: ["brent", "bzf", "oil", "brentclose"] },
+  { key: "flow", short: "Foreign flow", label: "Foreign net buy SET (THB mn)", req: false, alias: ["foreignnet", "foreignflow", "foreignnetbuy", "foreign", "flow"] },
+];
+const norm = s => String(s).toLowerCase().replace(/[^a-z0-9ก-๙]/g, "");
+
+function parseDate(s) {
+  s = String(s).trim().replace(/^"|"$/g, "");
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  let y, mo, d;
+  if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else if ((m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/))) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else { const t = Date.parse(s); if (isNaN(t)) return null; const dt = new Date(t); y = dt.getFullYear(); mo = dt.getMonth() + 1; d = dt.getDate(); }
+  if (y > 2400) y -= 543; // Thai Buddhist Era
+  const dt = new Date(Date.UTC(y, mo - 1, d)); return isNaN(dt) ? null : dt;
+}
+const parseNum = s => { if (s == null) return NaN; const t = String(s).replace(/[",\s]/g, ""); if (t === "" || t === "-" || /^n\/?a$/i.test(t) || t === "null") return NaN; const v = Number(t); return isFinite(v) ? v : NaN; };
+
+function splitCSVLine(line, delim) {
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+    else if (c === delim && !q) { out.push(cur); cur = ""; } else cur += c;
+  }
+  out.push(cur); return out;
+}
+
+/** Parse merged CSV → { rows, mapping, warnings } (rows sorted, forward-filled optional cols ≤3 days). */
+function parseCSV(text) {
+  const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter(l => l.trim().length);
+  if (lines.length < 3) throw new Error("CSV has fewer than 3 lines.");
+  const delim = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ";" : ",";
+  const head = splitCSVLine(lines[0], delim).map(norm);
+  const mapping = {}, warnings = [];
+  for (const col of SCHEMA) { const i = head.findIndex(h => col.alias.includes(h)); if (i >= 0) mapping[col.key] = i; }
+  const missingReq = SCHEMA.filter(c => c.req && !(c.key in mapping)).map(c => c.label);
+  if (missingReq.length) throw new Error("Missing required column(s): " + missingReq.join(", ") + ". Download the template to see expected headers.");
+  let rows = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cells = splitCSVLine(lines[li], delim); const date = parseDate(cells[mapping.date]); if (!date) continue;
+    const r = { date };
+    for (const col of SCHEMA) if (col.key !== "date") r[col.key] = col.key in mapping ? parseNum(cells[mapping[col.key]]) : NaN;
+    rows.push(r);
+  }
+  rows.sort((a, b) => a.date - b.date);
+  const dedup = []; for (const r of rows) { if (dedup.length && +dedup[dedup.length - 1].date === +r.date) { warnings.push("Duplicate date " + fmtDate(r.date) + " — kept last row."); dedup[dedup.length - 1] = r; } else dedup.push(r); }
+  rows = dedup.filter(r => isNum(r.ap) && r.ap > 0 && isNum(r.propcon) && isNum(r.set));
+  // forward-fill optional series (never back-fill: avoids look-ahead), max 3 consecutive days
+  let filled = 0;
+  for (const col of SCHEMA) {
+    if (col.req || col.key === "flow" || col.key === "apvol") continue;
+    let last = NaN, run = 0;
+    for (const r of rows) { if (isNum(r[col.key])) { last = r[col.key]; run = 0; } else if (isNum(last) && run < 3) { r[col.key] = last; run++; filled++; } }
+  }
+  if (filled) warnings.push(filled + " missing macro values forward-filled (≤3 days, never back-filled).");
+  return { rows, mapping: Object.fromEntries(Object.entries(mapping).map(([k, i]) => [k, head[i]])), warnings, source: "csv" };
+}
+
+/* ---------- synthetic demo data (clearly flagged in UI) ---------- */
+function genSample(seed = 17) {
+  const rng = mulberry32(seed), rows = [];
+  let d = new Date(Date.UTC(2023, 10, 20)); const end = new Date(Date.UTC(2026, 10, 17));
+  let set = 1390, prop = 128, ap = 10.4, th = 2.85, us = 4.40, fx = 35.6, br = 81, bull = true, prevTh = 0;
+  const thHist = [];
+  while (d <= end) {
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) {
+      if (bull ? rng() < 0.009 : rng() < 0.016) bull = !bull;
+      const drift = bull ? 0.0007 : -0.0016, volM = bull ? 1 : 1.35;
+      const dTh = 0.2 * prevTh + 2.6 * randn(rng) + (bull ? -0.2 : 0.45) - 2.0 * (th - 2.6); prevTh = dTh; thHist.push(dTh);
+      const dUs = 5.5 * randn(rng) - 2.5 * (us - 4.2);
+      const fxr = 0.0035 * randn(rng) + 0.00006 * dUs + (bull ? -0.0001 : 0.0002);
+      const brr = 0.017 * randn(rng) - 0.004 * Math.log(br / 78);
+      const flow = 1400 * randn(rng) + (bull ? 450 : -900);
+      const setr = 0.6 * drift + 0.0075 * volM * randn(rng) - 0.00012 * dUs - 0.5 * fxr + 0.04 * brr + 0.0000012 * flow;
+      const propr = 1.05 * setr + 0.4 * drift - 0.0010 * dTh + 0.0055 * volM * randn(rng);
+      const th5 = thHist.slice(-6, -1).reduce((s, v) => s + v, 0);
+      const apr = 0.8 * propr + 0.12 * setr - 0.0008 * dTh - 0.00008 * th5 + 0.5 * drift - 0.05 * brr + 0.0105 * volM * randn(rng);
+      set *= Math.exp(setr); prop *= Math.exp(propr); ap *= Math.exp(apr); th += dTh / 100; us += dUs / 100; fx *= Math.exp(fxr); br *= Math.exp(brr);
+      const vol = Math.round(Math.exp(16.4 + 0.35 * randn(rng) + (bull ? 0 : 0.25) + 9 * Math.abs(apr)));
+      rows.push({ date: new Date(d), ap: +ap.toFixed(2), propcon: +prop.toFixed(2), set: +set.toFixed(2), apvol: vol, th10y: +th.toFixed(3), us10y: +us.toFixed(3), usdthb: +fx.toFixed(3), brent: +br.toFixed(2), flow: Math.round(flow) });
+    }
+    d = new Date(d.getTime() + 86400000);
+  }
+  return { rows, mapping: Object.fromEntries(SCHEMA.map(c => [c.key, c.key])), warnings: [], source: "synthetic" };
+}
+
+function toCSV(rows) {
+  const keys = SCHEMA.map(c => c.key);
+  const hdr = ["date", "ap_close", "propcon_close", "set_close", "ap_volume", "th10y", "us10y", "usdthb", "brent", "foreign_net"];
+  return [hdr.join(",")].concat(rows.map(r => keys.map(k => k === "date" ? fmtDate(r.date) : (isNum(r[k]) ? r[k] : "")).join(","))).join("\n");
+}
+
+/* ---------- feature definitions ---------- */
+const ATTR_FACTORS = [
+  { key: "mkt", short: "Market (SET)", label: "SET market", unit: "%", cat: "Market", need: [] },
+  { key: "sector", short: "Sector spread", label: "Sector spread (PROPCON−SET)", unit: "%", cat: "Sector", need: [] },
+  { key: "th", short: "TH 10Y yield", label: "TH 10Y yield Δ", unit: "bp", cat: "Macro", need: ["th10y"] },
+  { key: "us", short: "US 10Y yield", label: "US 10Y yield Δ", unit: "bp", cat: "Macro", need: ["us10y"] },
+  { key: "fx", short: "USD/THB", label: "USD/THB (THB weaker +)", unit: "%", cat: "Macro", need: ["usdthb"] },
+  { key: "oil", short: "Brent", label: "Brent crude", unit: "%", cat: "Macro", need: ["brent"] },
+  { key: "flow", short: "Foreign flow", label: "Foreign net flow (z)", unit: "σ", cat: "Sentiment", need: ["flow"] },
+];
+const PRED_FEATURES = [
+  { key: "mom5", label: "AP 5-day momentum", cat: "Technical", need: [] },
+  { key: "mom20", label: "AP 20-day momentum", cat: "Technical", need: [] },
+  { key: "gap50", label: "Distance from SMA50", cat: "Technical", need: [] },
+  { key: "rsi", label: "RSI(14) centred", cat: "Technical", need: [] },
+  { key: "macd", label: "MACD histogram / price", cat: "Technical", need: [] },
+  { key: "rv20", label: "20-day realised vol", cat: "Technical", need: [] },
+  { key: "rs20", label: "Rel. strength vs PROPCON 20d", cat: "Sector", need: [] },
+  { key: "sec20", label: "PROPCON vs SET 20d", cat: "Sector", need: [] },
+  { key: "set20", label: "SET 20-day momentum", cat: "Macro", need: [] },
+  { key: "th5", label: "TH 10Y 5-day Δ (bp)", cat: "Macro", need: ["th10y"] },
+  { key: "us5", label: "US 10Y 5-day Δ (bp)", cat: "Macro", need: ["us10y"] },
+  { key: "fx5", label: "USD/THB 5-day %", cat: "Macro", need: ["usdthb"] },
+  { key: "oil20", label: "Brent 20-day %", cat: "Macro", need: ["brent"] },
+  { key: "flow5", label: "Foreign flow 5d (z)", cat: "Sentiment", need: ["flow"] },
+  { key: "volz", label: "Volume z-score (20d)", cat: "Sentiment", need: ["apvol"] },
+];
+
+function avail(rows, key) { let n = 0; for (const r of rows) if (isNum(r[key])) n++; return n / rows.length > 0.8; }
+
+function buildSeries(rows) {
+  const N = rows.length, S = {};
+  const col = k => rows.map(r => r[k]);
+  const ap = col("ap"), pc = col("propcon"), st = col("set");
+  const ret = a => a.map((v, i) => i && isNum(v) && isNum(a[i - 1]) ? (v / a[i - 1] - 1) * 100 : NaN); // %
+  const chg = a => a.map((v, i) => i && isNum(v) && isNum(a[i - 1]) ? (v - a[i - 1]) * 100 : NaN);   // bp
+  const back = (a, i, k) => i >= k && isNum(a[i]) && isNum(a[i - k]) ? a[i] / a[i - k] - 1 : NaN;
+  const roll = (a, i, k, f) => { if (i < k - 1) return NaN; const w = a.slice(i - k + 1, i + 1); return w.every(isNum) ? f(w) : NaN; };
+  S.apR = ret(ap); S.pcR = ret(pc); S.setR = ret(st);
+  // attribution regressors (same-day)
+  S.mkt = S.setR; S.sector = S.pcR.map((v, i) => v - S.setR[i]);
+  S.th = chg(col("th10y")); S.us = chg(col("us10y")); S.fx = ret(col("usdthb")); S.oil = ret(col("brent"));
+  const fl = col("flow"); S.flow = fl.map((v, i) => { if (i < 60 || !isNum(v)) return NaN; const w = fl.slice(i - 60, i).filter(isNum); if (w.length < 40) return NaN; const s = sd(w); return s > 0 ? (v - mean(w)) / s : NaN; });
+  // predictive features (information at close t)
+  const lr = ap.map((v, i) => i ? Math.log(v / ap[i - 1]) : NaN);
+  S.mom5 = ap.map((v, i) => back(ap, i, 5)); S.mom20 = ap.map((v, i) => back(ap, i, 20));
+  S.sma50 = ap.map((v, i) => roll(ap, i, 50, mean)); S.gap50 = ap.map((v, i) => v / S.sma50[i] - 1);
+  S.sma20 = ap.map((v, i) => roll(ap, i, 20, mean));
+  // RSI (Wilder)
+  S.rsiRaw = new Array(N).fill(NaN); let ag = 0, al = 0;
+  for (let i = 1; i < N; i++) { const ch = ap[i] - ap[i - 1], g = Math.max(ch, 0), l = Math.max(-ch, 0);
+    if (i <= 14) { ag += g / 14; al += l / 14; if (i === 14) S.rsiRaw[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al); }
+    else { ag = (ag * 13 + g) / 14; al = (al * 13 + l) / 14; S.rsiRaw[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al); } }
+  S.rsi = S.rsiRaw.map(v => (v - 50) / 50);
+  const ema = (a, n) => { const k = 2 / (n + 1), o = []; let e = NaN; a.forEach((v, i) => { e = isNum(e) ? v * k + e * (1 - k) : v; o.push(i >= n - 1 ? e : NaN); }); return o; };
+  const e12 = ema(ap, 12), e26 = ema(ap, 26), macdL = ap.map((v, i) => e12[i] - e26[i]);
+  const sig = (() => { const k = 2 / 10, o = []; let e = NaN, c = 0; macdL.forEach(v => { if (!isNum(v)) { o.push(NaN); return; } e = isNum(e) ? v * k + e * (1 - k) : v; c++; o.push(c >= 9 ? e : NaN); }); return o; })();
+  S.macd = ap.map((v, i) => (macdL[i] - sig[i]) / v);
+  S.rvD = lr.map((v, i) => roll(lr, i, 20, sd));            // daily log-ret sd
+  S.rv20 = S.rvD.map(v => v * Math.sqrt(TD));                // annualised
+  S.rs20 = ap.map((v, i) => back(ap, i, 20) - back(pc, i, 20));
+  S.sec20 = ap.map((v, i) => back(pc, i, 20) - back(st, i, 20));
+  S.set20 = ap.map((v, i) => back(st, i, 20));
+  const th = col("th10y"), us = col("us10y"), fx = col("usdthb"), br = col("brent");
+  S.th5 = th.map((v, i) => i >= 5 ? (v - th[i - 5]) * 100 : NaN); S.us5 = us.map((v, i) => i >= 5 ? (v - us[i - 5]) * 100 : NaN);
+  S.fx5 = fx.map((v, i) => back(fx, i, 5)); S.oil20 = br.map((v, i) => back(br, i, 20));
+  const f5 = fl.map((v, i) => roll(fl, i, 5, w => w.reduce((s, x) => s + x, 0)));
+  S.flow5 = f5.map((v, i) => { if (i < 125 || !isNum(v)) return NaN; const w = f5.slice(i - 120, i).filter(isNum); const s = sd(w); return s > 0 ? (v - mean(w)) / s : NaN; });
+  const lv = col("apvol").map(v => isNum(v) && v > 0 ? Math.log(v) : NaN);
+  S.volz = lv.map((v, i) => { if (i < 20 || !isNum(v)) return NaN; const w = lv.slice(i - 20, i).filter(isNum); const s = sd(w); return w.length > 15 && s > 0 ? (v - mean(w)) / s : NaN; });
+  return S;
+}
+
+/* ---------- rolling attribution ---------- */
+function attribution(rows, S, W) {
+  const N = rows.length;
+  const facs = ATTR_FACTORS.filter(f => f.need.every(k => avail(rows, k)) && S[f.key].filter(isNum).length > W);
+  const hist = new Array(N).fill(null);
+  const fitAt = end => {
+    const X = [], y = [], raw = facs.map(() => []);
+    for (let i = end - W + 1; i <= end; i++) {
+      if (i < 1) continue; const xs = facs.map(f => S[f.key][i]);
+      if (!isNum(S.apR[i]) || !xs.every(isNum)) continue;
+      X.push([1, ...xs]); y.push(S.apR[i]); xs.forEach((v, j) => raw[j].push(v));
+    }
+    if (X.length < Math.max(40, facs.length * 6)) return null;
+    const m = ols(X, y, 1e-6); if (!m) return null;
+    const sy = sd(y); m.sx = raw.map(sd); m.stdBeta = m.beta.slice(1).map((b, j) => b * m.sx[j] / sy); m.sy = sy; return m;
+  };
+  for (let i = W; i < N; i++) hist[i] = fitAt(i);
+  const last = hist[N - 1], prior = N - 1 - W >= W ? hist[N - 1 - W] : null;
+  // today's decomposition
+  let decomp = null;
+  if (last) { const xs = facs.map(f => S[f.key][N - 1]); const contrib = xs.map((x, j) => isNum(x) ? x * last.beta[j + 1] : 0);
+    decomp = { contrib, alpha: last.beta[0], actual: S.apR[N - 1], resid: S.apR[N - 1] - last.beta[0] - contrib.reduce((s, v) => s + v, 0), xs }; }
+  // simple market beta (250d) for CAPM
+  const mb = (() => { const X = [], y = []; for (let i = Math.max(1, N - 250); i < N; i++) if (isNum(S.apR[i]) && isNum(S.setR[i])) { X.push([1, S.setR[i]]); y.push(S.apR[i]); } const m = X.length > 30 ? ols(X, y) : null; return m ? m.beta[1] : NaN; })();
+  return { facs, hist, last, prior, decomp, mktBeta: mb };
+}
+
+/* ---------- walk-forward logistic regime model ---------- */
+function regimeModel(rows, S, P) {
+  const N = rows.length, h = P.horizon, e = P.embargo;
+  const feats = PRED_FEATURES.filter(f => f.need.every(k => avail(rows, k)) && S[f.key].filter(isNum).length > 200);
+  const ap = rows.map(r => r.ap);
+  // label: forward h-day log return measured from t+1 (execution day) to t+1+h, scaled by vol known at t
+  const y = new Array(N).fill(NaN), fwd = new Array(N).fill(NaN);
+  for (let t = 0; t + 1 + h < N; t++) { if (!isNum(S.rvD[t])) continue; fwd[t] = Math.log(ap[t + 1 + h] / ap[t + 1]); y[t] = fwd[t] < -P.k * S.rvD[t] * Math.sqrt(h) ? 1 : 0; }
+  const okX = i => feats.every(f => isNum(S[f.key][i]));
+  let f0 = 0; while (f0 < N && !okX(f0)) f0++;
+  const firstPred = f0 + P.minTrain + h + 1 + e;
+  // data-implied cost ratio (pre-OOS history only): avg loss when Bear label vs avg gain when not
+  const pre = []; for (let t = f0; t <= Math.min(firstPred - 1 - h - e, N - 2 - h); t++) if (isNum(y[t])) pre.push(t);
+  const lossB = mean(pre.filter(t => y[t] === 1).map(t => -fwd[t])), gainN = mean(pre.filter(t => y[t] === 0 && fwd[t] > 0).map(t => fwd[t]));
+  const lambdaHat = isNum(lossB) && gainN > 0 ? lossB / gainN : NaN;
+  const p = new Array(N).fill(NaN); let lastModel = null; const refits = [];
+  if (firstPred >= N - 5) return { feats, y, fwd, p, ps: p.slice(), firstPred, err: "Not enough history for walk-forward training (need ≈" + (P.minTrain + h + e + 60) + " clean rows after feature warm-up)." };
+  for (let b = firstPred; b < N; b += P.step) {
+    const tEnd = b - 1 - h - e; const tr = [];
+    for (let t = f0; t <= tEnd; t++) if (okX(t) && isNum(y[t])) tr.push(t);
+    if (tr.length < 100) continue;
+    const mu = feats.map(f => mean(tr.map(t => S[f.key][t]))), sg = feats.map(f => sd(tr.map(t => S[f.key][t])) || 1);
+    const z = i => [1, ...feats.map((f, j) => Math.max(-5, Math.min(5, (S[f.key][i] - mu[j]) / sg[j])))];
+    const w = logitFit(tr.map(z), tr.map(t => y[t]), P.l2);
+    for (let i = b; i < Math.min(N, b + P.step); i++) if (okX(i)) p[i] = sigmoid(z(i).reduce((s, v, j) => s + v * w[j], 0));
+    lastModel = { w, mu, sg, trainN: tr.length, trainEnd: tEnd, z }; refits.push(b);
+  }
+  // smoothing
+  const a = 2 / (P.smooth + 1), ps = new Array(N).fill(NaN); let s = NaN;
+  for (let i = 0; i < N; i++) { if (!isNum(p[i])) { ps[i] = s; continue; } s = isNum(s) ? a * p[i] + (1 - a) * s : p[i]; ps[i] = s; }
+  // regime state machine with hysteresis
+  const theta = 1 / (1 + P.lambda), enter = Math.min(0.95, theta + P.band), exit = Math.max(0.02, theta - P.band);
+  const reg = new Array(N).fill(null); let state = "Bull";
+  for (let i = firstPred; i < N; i++) { if (!isNum(ps[i])) { reg[i] = state; continue; } if (state === "Bull" && ps[i] >= enter) state = "Bear"; else if (state === "Bear" && ps[i] <= exit) state = "Bull"; reg[i] = state; }
+  // OOS metrics (only where label is realised)
+  const idx = []; for (let i = firstPred; i < N; i++) if (isNum(p[i]) && isNum(y[i])) idx.push(i);
+  const pv = idx.map(i => p[i]), yv = idx.map(i => y[i]), br = mean(yv);
+  const brier = mean(pv.map((q, j) => (q - yv[j]) ** 2)), brierRef = br * (1 - br);
+  const ll = -mean(pv.map((q, j) => yv[j] ? Math.log(Math.max(q, 1e-9)) : Math.log(Math.max(1 - q, 1e-9))));
+  let tp = 0, fp = 0, tn = 0, fn = 0; idx.forEach((i, j) => { const pr = reg[i] === "Bear" ? 1 : 0; if (pr && yv[j]) tp++; else if (pr) fp++; else if (yv[j]) fn++; else tn++; });
+  const order = pv.map((q, j) => j).sort((a1, b1) => pv[a1] - pv[b1]); const nb = 5, cal = [];
+  for (let b = 0; b < nb; b++) { const sl = order.slice(Math.floor(b * order.length / nb), Math.floor((b + 1) * order.length / nb)); if (sl.length) cal.push({ p: mean(sl.map(j => pv[j])), y: mean(sl.map(j => yv[j])), n: sl.length }); }
+  const metrics = { n: idx.length, auc: auc(pv, yv), brier, bss: brierRef > 0 ? 1 - brier / brierRef : NaN, logloss: ll, base: br, tp, fp, tn, fn,
+    precision: tp + fp ? tp / (tp + fp) : NaN, recall: tp + fn ? tp / (tp + fn) : NaN, accuracy: (tp + tn) / Math.max(1, idx.length), cal };
+  // latest contributions to logit
+  let contrib = null;
+  if (lastModel && okX(N - 1)) { const zz = lastModel.z(N - 1); contrib = feats.map((f, j) => ({ key: f.key, label: f.label, cat: f.cat, z: zz[j + 1], w: lastModel.w[j + 1], c: zz[j + 1] * lastModel.w[j + 1] })); }
+  // backtest: signal at close t → trade at close t+1 → earn r(t+2)
+  const bt = backtest(rows, S, reg, firstPred, P.cost);
+  const switches = reg.reduce((c, r, i) => c + (i > firstPred && r !== reg[i - 1] ? 1 : 0), 0);
+  return { feats, y, fwd, p, ps, reg, lambdaHat, theta, enter, exit, firstPred, metrics, lastModel, contrib, bt, switches, refits: refits.length };
+}
+
+function backtest(rows, S, reg, start, costBps) {
+  const N = rows.length, eqS = new Array(N).fill(NaN), eqB = new Array(N).fill(NaN);
+  const s0 = start + 1; if (s0 >= N - 2) return null;
+  eqS[s0] = 100; eqB[s0] = 100; let prevPos = 1; const rS = [], rB = []; let trades = 0, inMkt = 0;
+  for (let d = s0 + 1; d < N; d++) {
+    const r = S.apR[d] / 100; const sigIdx = d - 2; const pos = sigIdx >= start && reg[sigIdx] === "Bear" ? 0 : 1;
+    let c = 0; if (pos !== prevPos) { c = costBps / 10000; trades++; } prevPos = pos; inMkt += pos;
+    const rs = pos * r - c; rS.push(rs); rB.push(r);
+    eqS[d] = eqS[d - 1] * (1 + rs); eqB[d] = eqB[d - 1] * (1 + r);
+  }
+  const stats = (rr, eq) => { const n = rr.length, tot = eq[N - 1] / 100 - 1, cagr = Math.pow(1 + tot, TD / n) - 1, vol = sd(rr) * Math.sqrt(TD);
+    let pk = 100, mdd = 0; for (let d = s0; d < N; d++) { pk = Math.max(pk, eq[d]); mdd = Math.min(mdd, eq[d] / pk - 1); }
+    return { tot, cagr, vol, sharpe: vol > 0 ? (mean(rr) * TD) / vol : NaN, mdd }; };
+  return { eqS, eqB, start: s0, strat: stats(rS, eqS), bh: stats(rB, eqB), trades, timeIn: inMkt / rS.length };
+}
+
+/* ---------- data quality ---------- */
+function dataQuality(rows, S) {
+  const out = []; const N = rows.length;
+  const add = (lvl, msg) => out.push({ lvl, msg });
+  add(N >= 500 ? "ok" : N >= 300 ? "warn" : "bad", N + " trading days loaded (" + fmtDate(rows[0].date) + " → " + fmtDate(rows[N - 1].date) + "). ≥500 recommended for walk-forward training.");
+  for (const c of SCHEMA) { if (c.key === "date") continue; const n = rows.filter(r => isNum(r[c.key])).length; const pct = n / N;
+    add(pct > 0.98 ? "ok" : pct > 0.8 ? "warn" : c.req ? "bad" : "info", c.label + ": " + (pct * 100).toFixed(1) + "% populated" + (pct <= 0.8 && !c.req ? " — excluded from models." : ".")); }
+  let stale = 0, run = 0; for (let i = 1; i < N; i++) { if (rows[i].ap === rows[i - 1].ap) { run++; if (run === 3) stale++; } else run = 0; }
+  add(stale ? "warn" : "ok", stale ? stale + " stretch(es) of ≥4 identical AP closes — check for stale prices / suspensions." : "No stale-price runs detected in AP close.");
+  const r = S.apR.filter(isNum), m = mean(r), s = sd(r); const outl = S.apR.map((v, i) => [v, i]).filter(([v]) => isNum(v) && Math.abs(v - m) > 6 * s);
+  add(outl.length ? "warn" : "ok", outl.length ? outl.length + " AP daily return(s) beyond 6σ (e.g. " + fmtDate(rows[outl[0][1]].date) + ": " + outl[0][0].toFixed(1) + "%) — check XD/XR adjustments or splits." : "No AP daily returns beyond 6σ.");
+  let gaps = 0; for (let i = 1; i < N; i++) if ((rows[i].date - rows[i - 1].date) / 86400000 > 6) gaps++;
+  add(gaps ? "warn" : "ok", gaps ? gaps + " calendar gap(s) >6 days — possible missing data." : "No calendar gaps >6 days.");
+  return out;
+}
+
+/* ---------- orchestrator ---------- */
+const DEFAULT_PARAMS = { window: 120, horizon: 10, k: 0.5, lambda: 1.5, band: 0.05, smooth: 3, step: 20, minTrain: 250, embargo: 5, l2: 20.0, cost: 15, shares: 3146 };
+function runAll(data, P) {
+  const S = buildSeries(data.rows);
+  const att = attribution(data.rows, S, P.window);
+  const rm = regimeModel(data.rows, S, P);
+  const dq = dataQuality(data.rows, S);
+  return { S, att, rm, dq, P: { ...P }, ts: new Date() };
+}
+
+if (typeof module !== "undefined" && module.exports) module.exports = { genSample, parseCSV, toCSV, runAll, DEFAULT_PARAMS, ols, logitFit, auc, invert, buildSeries, isNum, mean, sd };
+
+</script>
+<script>
+/* ==========================================================================
+   STOCK RADAR UI — rendering, charts (hand-built SVG), interactions
+   ========================================================================== */
+let DATA = null, RES = null, PARAMS = { ...DEFAULT_PARAMS }, RANGE = 250, ACTIVE = "overview";
+const SCEN = {};
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const F = {
+  n: (v, d = 2) => isNum(v) ? v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—",
+  sgn: (v, d = 2, u = "") => isNum(v) ? (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) + u : "—",
+  pctD: (v, d = 1) => isNum(v) ? (v * 100).toFixed(d) + "%" : "—",
+  sPctD: (v, d = 1) => F.sgn(isNum(v) ? v * 100 : NaN, d, "%"),
+};
+const cls = v => isNum(v) ? (v > 0 ? "up" : v < 0 ? "dn" : "") : "";
+const dstr = d => fmtDate(d);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/* ---------- tooltip ---------- */
+const TT = document.getElementById("tt");
+function showTT(html, x, y) {
+  TT.innerHTML = html; TT.style.display = "block";
+  const r = TT.getBoundingClientRect(); let L = x + 14, T = y + 14;
+  if (L + r.width > innerWidth - 8) L = x - r.width - 14; if (T + r.height > innerHeight - 8) T = y - r.height - 14;
+  TT.style.left = Math.max(8, L) + "px"; TT.style.top = Math.max(8, T) + "px";
+}
+const hideTT = () => TT.style.display = "none";
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (t) showTT(t.getAttribute("data-tip"), e.clientX, e.clientY); else if (!e.target.closest(".hov")) hideTT();
+});
+
+/* ---------- chart helpers ---------- */
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo; if (!(span > 0)) return [lo];
+  const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function legendHTML(items) {
+  return `<div class="legend">${items.map(s => `<span class="lg"><i class="${s.box ? "box" : ""}" style="background:${s.color}"></i>${esc(s.name)}${s.last != null ? ` <b class="num">${s.last}</b>` : ""}</span>`).join("")}</div>`;
+}
+function dateLbl(d, long) { return long ? MONTHS[d.getUTCMonth()] + " " + String(d.getUTCFullYear()).slice(2) : d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]; }
+
+/** Line chart: one y-axis, optional shaded bands and reference lines, crosshair tooltip. */
+function lineChart(el, o) {
+  el.innerHTML = "";
+  const n = o.dates.length; if (!n) { el.innerHTML = '<p class="note">No data in range.</p>'; return; }
+  const legendItems = o.series.filter(s => !s.noLegend).map(s => ({ name: s.name, color: s.color, last: s.last }));
+  if (legendItems.length > 1 || o.bandLegend) el.insertAdjacentHTML("beforeend", legendHTML(legendItems.concat(o.bandLegend ? [{ name: o.bandLegend, color: "var(--bearband)", box: true }] : []).concat(o.refLegend || [])));
+  const W = Math.max(300, el.clientWidth), H = o.height || 280, m = { l: 52, r: o.mr || 16, t: 10, b: 26 };
+  let lo = Infinity, hi = -Infinity;
+  o.series.forEach(s => s.values.forEach(v => { if (isNum(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  (o.hlines || []).forEach(h => { lo = Math.min(lo, h.y); hi = Math.max(hi, h.y); });
+  if (!isFinite(lo)) { el.insertAdjacentHTML("beforeend", '<p class="note">No values in range.</p>'); return; }
+  if (hi === lo) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * 0.06; lo = o.yMin != null ? o.yMin : lo - pad; hi = o.yMax != null ? o.yMax : hi + pad;
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const x = i => m.l + (n === 1 ? pw / 2 : i / (n - 1) * pw), y = v => m.t + (1 - (v - lo) / (hi - lo)) * ph;
+  const half = n > 1 ? pw / (n - 1) / 2 : 2;
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="${esc(o.aria || "line chart")}">`;
+  (o.bands || []).forEach(b => { s += `<rect x="${(x(b.from) - half).toFixed(1)}" y="${m.t}" width="${(x(b.to) - x(b.from) + 2 * half).toFixed(1)}" height="${ph}" fill="var(--bearband)"/>`; });
+  niceTicks(lo, hi, o.ticks || 5).forEach(t => { if (t < lo || t > hi) return; s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text x="${m.l - 6}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${o.fmt(t)}</text>`; });
+  s += `<line class="axisln" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ph}" y2="${m.t + ph}"/>`;
+  const longSpan = (o.dates[n - 1] - o.dates[0]) / 86400000 > 300, nx = Math.max(2, Math.min(7, Math.floor(pw / 90)));
+  for (let k = 0; k < nx; k++) { const i = Math.round(k * (n - 1) / (nx - 1)); s += `<text x="${x(i).toFixed(1)}" y="${H - 7}" text-anchor="${k === 0 ? "start" : k === nx - 1 ? "end" : "middle"}">${dateLbl(o.dates[i], longSpan)}</text>`; }
+  (o.hlines || []).forEach(h => { s += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(h.y).toFixed(1)}" y2="${y(h.y).toFixed(1)}" stroke="${h.color || "var(--axis)"}"/>` + (h.label ? `<text class="halo" x="${W - m.r - 4}" y="${(y(h.y) - 5).toFixed(1)}" text-anchor="end" style="fill:var(--text2)">${esc(h.label)}</text>` : ""); });
+  o.series.forEach(se => {
+    let d = "", pen = false;
+    se.values.forEach((v, i) => { if (isNum(v)) { d += (pen ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1); pen = true; } else pen = false; });
+    s += `<path d="${d}" fill="none" stroke="${se.color}" stroke-width="${se.width || 2}" stroke-linejoin="round" stroke-linecap="round" ${se.opacity ? `opacity="${se.opacity}"` : ""}/>`;
+  });
+  s += `<line class="xh" x1="0" x2="0" y1="${m.t}" y2="${m.t + ph}"/><g class="dots">${o.series.filter(se => !se.noDot).map(se => `<circle r="4" fill="${se.color}" stroke="var(--surface)" stroke-width="2" style="display:none"/>`).join("")}</g>`;
+  s += `<rect class="hov" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/></svg>`;
+  el.insertAdjacentHTML("beforeend", s);
+  const svg = el.querySelector("svg"), ov = svg.querySelector(".hov"), xh = svg.querySelector(".xh"), dots = svg.querySelectorAll(".dots circle");
+  const dotSeries = o.series.filter(se => !se.noDot);
+  ov.addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(), px = e.clientX - r.left; const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / pw * (n - 1))));
+    xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.style.opacity = 1;
+    dotSeries.forEach((se, k) => { const v = se.values[i]; if (isNum(v)) { dots[k].setAttribute("cx", x(i)); dots[k].setAttribute("cy", y(v)); dots[k].style.display = ""; } else dots[k].style.display = "none"; });
+    let html = `<div class="h">${dstr(o.dates[i])}</div>` + o.series.filter(se => !se.noTip).map(se => `<div class="r"><span><i style="background:${se.color}"></i>${esc(se.name)}</span><b class="num">${isNum(se.values[i]) ? (se.tipFmt || o.fmt)(se.values[i]) : "—"}</b></div>`).join("");
+    if (o.tipExtra) html += o.tipExtra(i);
+    showTT(html, e.clientX, e.clientY);
+  });
+  ov.addEventListener("mouseleave", () => { xh.style.opacity = 0; dots.forEach(d => d.style.display = "none"); hideTT(); });
+}
+
+/** Radar chart (values ≥ 0). */
+function radarChart(el, axes, series, o = {}) {
+  el.innerHTML = legendHTML(series.map(s => ({ name: s.name, color: s.color })));
+  const W = Math.max(280, el.clientWidth), H = o.height || 330, cx = W / 2, cy = H / 2 + 2, R = Math.max(60, Math.min(W / 2 - 88, H / 2 - 30));
+  const n = axes.length, ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
+  const max = o.max || Math.max(0.1, ...series.flatMap(s => s.values.filter(isNum)));
+  const P = (i, v) => [cx + Math.cos(ang(i)) * R * v / max, cy + Math.sin(ang(i)) * R * v / max];
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Driver radar">`;
+  niceTicks(0, max, 4).filter(t => t > 0).forEach(t => { const f = t / max; s += `<polygon class="grid" fill="none" points="${axes.map((a, i) => P(i, t).map(v => v.toFixed(1)).join(",")).join(" ")}"/>`; s += `<text class="halo" x="${cx - 5}" y="${(cy - R * f + 4).toFixed(1)}" text-anchor="end">${t.toFixed(t < 0.1 ? 2 : 1)}</text>`; });
+  if (Math.abs(niceTicks(0, max, 4).slice(-1)[0] - max) > 1e-9) s += `<polygon class="grid" fill="none" points="${axes.map((a, i) => P(i, max).map(v => v.toFixed(1)).join(",")).join(" ")}"/>`;
+  axes.forEach((a, i) => { const [x2, y2] = P(i, max); s += `<line class="grid" x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    const [lx, ly] = P(i, max * 1.13), c = Math.cos(ang(i)); s += `<text class="lbl" x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${Math.abs(c) < 0.2 ? "middle" : c > 0 ? "start" : "end"}">${esc(a)}</text>`; });
+  series.forEach(se => { const pts = se.values.map((v, i) => P(i, isNum(v) ? v : 0)); s += `<polygon points="${pts.map(p => p.map(v => v.toFixed(1)).join(",")).join(" ")}" fill="${se.color}" fill-opacity="0.13" stroke="${se.color}" stroke-width="2" stroke-linejoin="round"/>`; });
+  series.forEach(se => se.values.forEach((v, i) => { const [px, py] = P(i, isNum(v) ? v : 0); s += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="5" fill="${se.color}" stroke="var(--surface)" stroke-width="2" data-tip="${esc(`<div class='h'>${axes[i]}</div><div class='r'><span><i style='background:${se.color}'></i>${se.name}</span><b>${isNum(v) ? v.toFixed(3) : "—"}</b></div>${se.tips ? se.tips[i] : ""}`)}"/>`; }));
+  el.insertAdjacentHTML("beforeend", s + "</svg>");
+}
+
+/** Horizontal diverging bars around zero. */
+function divBars(el, items, o = {}) {
+  el.innerHTML = o.legend ? legendHTML(o.legend) : "";
+  if (!items.length) { el.insertAdjacentHTML("beforeend", '<p class="note">Not available.</p>'); return; }
+  const W = Math.max(300, el.clientWidth), rowH = 26, H = items.length * rowH + 22, lw = Math.min(200, W * 0.38), vw = 62, bw = W - lw - vw - 8;
+  const mx = o.max || Math.max(1e-9, ...items.map(it => Math.abs(it.value)).filter(isNum)), cx0 = lw + bw / 2, sc = v => v / mx * (bw / 2 - 4);
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="${esc(o.aria || "bar chart")}"><line class="axisln" x1="${cx0}" x2="${cx0}" y1="2" y2="${H - 18}"/>`;
+  items.forEach((it, k) => {
+    const yy = k * rowH + 6, v = isNum(it.value) ? it.value : 0, w = Math.abs(sc(v)), col = it.color || (v >= 0 ? (o.posColor || "var(--pos)") : (o.negColor || "var(--neg)"));
+    const x0 = v >= 0 ? cx0 : cx0 - w;
+    s += `<g data-tip="${esc(it.tip || `<b>${it.label}</b>: ${o.fmt(v)}`)}"><rect x="0" y="${yy - 4}" width="${W}" height="${rowH}" fill="transparent"/>`;
+    s += `<text class="lbl" x="${lw - 8}" y="${yy + 12}" text-anchor="end">${esc(it.label.length > 30 ? it.label.slice(0, 29) + "…" : it.label)}</text>`;
+    s += `<rect x="${x0.toFixed(1)}" y="${yy + 2}" width="${Math.max(1, w).toFixed(1)}" height="13" rx="3" fill="${col}" ${it.hatch ? 'opacity=".55"' : ""}/>`;
+    s += `<text class="val num" x="${W - 4}" y="${yy + 12}" text-anchor="end">${o.fmt(v)}</text></g>`;
+  });
+  s += `<text x="${cx0}" y="${H - 4}" text-anchor="middle">0</text>`;
+  if (o.leftLbl) s += `<text x="${lw}" y="${H - 4}">${esc(o.leftLbl)}</text>`;
+  if (o.rightLbl) s += `<text x="${lw + bw}" y="${H - 4}" text-anchor="end">${esc(o.rightLbl)}</text>`;
+  el.insertAdjacentHTML("beforeend", s + "</svg>");
+}
+
+function calChart(el, cal) {
+  const W = Math.max(280, el.clientWidth), H = 260, m = { l: 46, r: 14, t: 10, b: 34 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const mx = Math.min(1, Math.ceil(Math.max(0.5, ...cal.map(c => Math.max(c.p, c.y))) * 10) / 10);
+  const x = v => m.l + v / mx * pw, y = v => m.t + (1 - v / mx) * ph;
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Calibration plot">`;
+  niceTicks(0, mx, 5).forEach(t => { s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${(t * 100).toFixed(0)}%</text><text x="${x(t)}" y="${H - 18}" text-anchor="middle">${(t * 100).toFixed(0)}%</text>`; });
+  s += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(mx)}" y2="${y(mx)}" stroke="var(--axis)" stroke-width="1.5"/><text x="${x(mx) - 4}" y="${y(mx) + 14}" text-anchor="end">perfect calibration</text>`;
+  s += `<text x="${m.l + pw / 2}" y="${H - 3}" text-anchor="middle">Predicted P(Bear)</text>`;
+  s += `<path d="${cal.map((c, i) => (i ? "L" : "M") + x(c.p).toFixed(1) + "," + y(c.y).toFixed(1)).join("")}" fill="none" stroke="var(--s1)" stroke-width="2"/>`;
+  cal.forEach((c, i) => { s += `<circle cx="${x(c.p)}" cy="${y(c.y)}" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" data-tip="${esc(`<div class='h'>Quintile ${i + 1}</div><div class='r'><span>Mean predicted</span><b>${F.pctD(c.p)}</b></div><div class='r'><span>Realised Bear rate</span><b>${F.pctD(c.y)}</b></div><div class='r'><span>Days</span><b>${c.n}</b></div>`)}"/>`; });
+  el.innerHTML = s + "</svg>";
+}
+
+/* ---------- range handling ---------- */
+const RANGES = [["3M", 63], ["6M", 126], ["1Y", 250], ["2Y", 500], ["All", 1e9]];
+function buildRangeButtons() {
+  $$("[data-range-group]").forEach(g => { g.innerHTML = RANGES.map(([l, v]) => `<button aria-pressed="${v === RANGE}" data-r="${v}">${l}</button>`).join(""); });
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-r]"); if (!b) return; RANGE = +b.dataset.r; buildRangeButtons(); renderActive();
+});
+const rangeStart = (N, minStart = 0) => Math.max(minStart, N - RANGE);
+function bandsFrom(reg, s0, N) { const out = []; let st = null; for (let i = s0; i < N; i++) { const b = reg && reg[i] === "Bear"; if (b && st === null) st = i; if ((!b || i === N - 1) && st !== null) { out.push({ from: st - s0, to: (b ? i : i - 1) - s0 }); st = null; } } return out; }
+
+/* ---------- header / banner ---------- */
+function renderHeader() {
+  const rows = DATA.rows, N = rows.length, last = rows[N - 1].date;
+  const syn = DATA.source === "synthetic";
+  $("#chip-src").innerHTML = syn ? '<span style="color:var(--warn)">▲</span> Data: <b>Synthetic demo</b>' : 'Data: <b>' + esc(DATA.name || "User CSV") + "</b>";
+  $("#chip-src").className = "chip" + (syn ? " warn" : "");
+  $("#chip-asof").textContent = dstr(last);
+  $("#chip-ver").textContent = "v" + ENGINE_VERSION;
+  $("#foot-ver").textContent = "Engine v" + ENGINE_VERSION + " · computed " + RES.ts.toLocaleString();
+  const ageDays = Math.round((Date.now() - last.getTime()) / 86400000);
+  const m = RES.rm.metrics || {}; const tier = skillTier(RES.rm.metrics); const low = tier !== "ok";
+  $("#banner").innerHTML = `<span class="ico" aria-hidden="true">!</span><div>` +
+    (syn ? `<strong>Synthetic demo data</strong> — generated by a regime-switching simulator; these are <strong>not real AP.BK prices</strong>. Load your own CSV in the <a href="#" data-goto="data">Data</a> tab. ` : `<strong>Source:</strong> ${esc(DATA.name || "user CSV")} · ${N} trading days · last date ${dstr(last)}${ageDays > 4 ? ` <span class="flag">Data ${ageDays} days old</span>` : ""}. `) +
+    `Analytical decision-support only, <strong>not investment advice</strong>. Signals are probabilities estimated out-of-sample${low ? ` — <strong>current model skill is ${tier}</strong> (AUC ${F.n(m.auc, 2)}, Brier skill ${F.n(m.bss, 3)}); treat the regime call with caution` : ""}.</div>`;
+}
+document.addEventListener("click", e => { const a = e.target.closest("[data-goto]"); if (a) { e.preventDefault(); switchTab(a.dataset.goto); } });
+
+/* ---------- OVERVIEW ---------- */
+function regimeBadge(state) { return state === "Bear" ? `<span class="badge bear"><span class="ic">▼</span>BEAR</span>` : `<span class="badge bull"><span class="ic">▲</span>BULL</span>`; }
+function skillTier(m) { if (!m || !isNum(m.auc)) return "low"; if (m.auc >= 0.58 && m.bss > 0.01) return "ok"; if (m.auc >= 0.55) return "marginal"; return "low"; }
+function skillFlag(m) { const t = skillTier(m); return t === "ok" ? `<span class="flag ok">✓ OOS skill</span>` : t === "marginal" ? `<span class="flag">⚠ Marginal skill</span>` : `<span class="flag" style="border-color:var(--crit)">⚠ Low skill</span>`; }
+
+function renderOverview() {
+  const rows = DATA.rows, N = rows.length, S = RES.S, rm = RES.rm, att = RES.att, L = rows[N - 1];
+  const rel = S.apR[N - 1] - S.pcR[N - 1];
+  const hi52 = Math.max(...rows.slice(-250).map(r => r.ap)), lo52 = Math.min(...rows.slice(-250).map(r => r.ap));
+  const ps = rm.ps[N - 1], st = rm.reg ? rm.reg[N - 1] : null;
+  const k = [
+    { l: "AP.BK close", v: `${F.n(L.ap)} <span style="font-size:14px;color:var(--text2)">THB</span>`, d: `<span class="${cls(S.apR[N - 1])}">${F.sgn(S.apR[N - 1], 2, "%")}</span> today · 52w ${F.n(lo52)}–${F.n(hi52)}` },
+    { l: "vs PROPCON (1D)", v: `<span class="${cls(rel)}">${F.sgn(rel, 2, " pp")}</span>`, d: `PROPCON ${F.sgn(S.pcR[N - 1], 2, "%")} · SET ${F.sgn(S.setR[N - 1], 2, "%")}` },
+    { l: "Regime signal", v: st ? regimeBadge(st) : "—", d: `P(Bear) ${F.pctD(ps)} · enter ≥ ${F.pctD(rm.enter, 0)} / exit ≤ ${F.pctD(rm.exit, 0)} ${skillFlag(rm.metrics)}` },
+    { l: "20D realised vol", v: F.pctD(S.rv20[N - 1]), d: `annualised · 1-year median ${F.pctD(median(S.rv20.slice(-250)))}` },
+    { l: "Factor fit (R²)", v: att.last ? F.pctD(att.last.r2, 0) : "—", d: att.last ? `of AP daily variance explained · ${PARAMS.window}-day window` : "insufficient data" },
+    { l: "Market cap", v: `${F.n(L.ap * PARAMS.shares / 1000, 1)} <span style="font-size:14px;color:var(--text2)">THB bn</span>`, d: `${F.n(PARAMS.shares, 0)} mn shares (editable in Drivers)` },
+  ];
+  $("#kpis").innerHTML = k.map(x => `<div class="card kpi"><div class="lbl">${x.l}</div><div class="val num">${x.v}</div><div class="det">${x.d}</div></div>`).join("");
+
+  // price chart
+  const s0 = rangeStart(N), sl = a => a.slice(s0);
+  const idx = key => { const b = rows[s0][key]; return rows.slice(s0).map(r => r[key] / b * 100); };
+  const ap = idx("ap"), pc = idx("propcon"), se = idx("set");
+  lineChart($("#ch-price"), {
+    dates: rows.slice(s0).map(r => r.date), height: 320, fmt: v => v.toFixed(0), aria: "AP vs PROPCON vs SET indexed",
+    series: [
+      { name: "AP.BK", values: ap, color: "var(--s1)", width: 2.25, last: F.n(ap[ap.length - 1], 1) },
+      { name: "PROPCON", values: pc, color: "var(--s2)", last: F.n(pc[pc.length - 1], 1) },
+      { name: "SET", values: se, color: "var(--s3)", last: F.n(se[se.length - 1], 1) },
+    ], hlines: [{ y: 100, color: "var(--axis)" }],
+    bands: bandsFrom(rm.reg, s0, N), bandLegend: "Bear regime",
+    tipFmt: v => v.toFixed(1),
+    tipExtra: i => { const j = s0 + i; return `<div class="r"><span>AP close</span><b class="num">${F.n(rows[j].ap)} THB</b></div><div class="r"><span>P(Bear) smoothed</span><b class="num">${F.pctD(rm.ps[j])}</b></div>${rm.reg && rm.reg[j] ? `<div class="r"><span>Regime</span><b>${rm.reg[j] === "Bear" ? "▼ Bear" : "▲ Bull"}</b></div>` : ""}`; },
+  });
+
+  // radar
+  if (att.last) {
+    const cur = att.last.stdBeta.map(Math.abs), pri = att.prior ? att.prior.stdBeta.map(Math.abs) : null;
+    const mx = Math.max(0.2, Math.ceil(Math.max(...cur, ...(pri || [0])) * 10) / 10);
+    const tips = att.facs.map((f, j) => `<div class='r'><span>Signed std β (current)</span><b>${F.sgn(att.last.stdBeta[j], 3)}</b></div><div class='r'><span>t-stat</span><b>${F.n(att.last.t[j + 1], 2)}</b></div>`);
+    if (att.facs.length < 3) divBars($("#ch-radar"), att.facs.map((f, j) => ({ label: f.short, value: att.last.stdBeta[j] })), { fmt: v => F.sgn(v, 3), aria: "Standardised betas" });
+    else radarChart($("#ch-radar"), att.facs.map(f => f.short), [{ name: `Current ${PARAMS.window}d`, values: cur, color: "var(--s1)", tips }].concat(pri ? [{ name: `Prior ${PARAMS.window}d`, values: pri, color: "var(--s2)" }] : []), { max: mx, height: 340 });
+  } else $("#ch-radar").innerHTML = '<p class="note">Not enough data for attribution.</p>';
+
+  // decomposition
+  const dc = att.decomp;
+  if (dc) {
+    const items = att.facs.map((f, j) => ({ label: f.label, value: dc.contrib[j], tip: `<div class='h'>${f.label}</div><div class='r'><span>Factor move today</span><b>${F.sgn(dc.xs[j], 2, " " + f.unit)}</b></div><div class='r'><span>β</span><b>${F.sgn(att.last.beta[j + 1], 4)}</b></div><div class='r'><span>Contribution</span><b>${F.sgn(dc.contrib[j], 2, " pp")}</b></div>` }));
+    items.push({ label: "Alpha (intercept)", value: dc.alpha, color: "var(--muted)" });
+    items.push({ label: "Residual (stock-specific)", value: dc.resid, color: "var(--muted)", hatch: true });
+    $("#decomp-sub").innerHTML = `AP moved <b class="${cls(dc.actual)}">${F.sgn(dc.actual, 2, "%")}</b> on ${dstr(L.date)}. Systematic factors explain <b>${F.sgn(dc.contrib.reduce((a, b) => a + b, 0), 2, " pp")}</b>; the rest is stock-specific. Grey = intercept/residual.`;
+    divBars($("#ch-decomp"), items, { fmt: v => F.sgn(v, 2, " pp"), aria: "Today's return decomposition" });
+  }
+  // logit contributions
+  if (rm.contrib) {
+    const items = rm.contrib.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, 10).map(c => ({ label: c.label, value: c.c, tip: `<div class='h'>${c.label}</div><div class='r'><span>Category</span><b>${c.cat}</b></div><div class='r'><span>Today (z-score)</span><b>${F.sgn(c.z, 2)}</b></div><div class='r'><span>Coefficient</span><b>${F.sgn(c.w, 3)}</b></div><div class='r'><span>Logit contribution</span><b>${F.sgn(c.c, 3)}</b></div>` }));
+    divBars($("#ch-contrib"), items, { fmt: v => F.sgn(v, 2), posColor: "var(--neg)", negColor: "var(--pos)", legend: [{ name: "Raises P(Bear)", color: "var(--neg)", box: true }, { name: "Lowers P(Bear)", color: "var(--pos)", box: true }], aria: "Feature contributions to bear probability" });
+  } else $("#ch-contrib").innerHTML = `<p class="note">${esc(rm.err || "Model not available.")}</p>`;
+}
+function median(a) { const v = a.filter(isNum).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : NaN; }
+
+/* ---------- DRIVERS ---------- */
+const PRESETS = [
+  { name: "Thai rates +25bp", s: { th: 25 } },
+  { name: "Global risk-off", s: { mkt: -2.5, us: 15, fx: 1.0, flow: -2, oil: -3 } },
+  { name: "Property stimulus", s: { sector: 3, mkt: 0.3 } },
+  { name: "Oil spike", s: { oil: 8, th: 5 } },
+  { name: "Reset", s: {} },
+];
+const SC_RANGE = { "%": [-6, 6, 0.1], bp: [-50, 50, 1], "σ": [-4, 4, 0.1] };
+function renderDrivers() {
+  const att = RES.att, rows = DATA.rows, N = rows.length, price = rows[N - 1].ap, sh = PARAMS.shares;
+  $("#inp-shares").value = sh;
+  if (!att.last) { $("#attr-table").innerHTML = '<p class="note">Not enough data.</p>'; return; }
+  const L = att.last, Pr = att.prior;
+  $("#attr-sub").innerHTML = `Rolling ${PARAMS.window}-day OLS · R² ${F.pctD(L.r2, 0)} · residual σ ${F.n(L.residSd, 2)}% per day · n = ${L.n} · window ends ${dstr(rows[N - 1].date)}`;
+  const ord = att.facs.map((f, j) => j).sort((a, b) => Math.abs(L.stdBeta[b]) - Math.abs(L.stdBeta[a]));
+  $("#attr-table").innerHTML = `<table class="t"><thead><tr><th>#</th><th>Factor</th><th>Category</th><th class="r">β (AP % per unit)</th><th class="r">t</th><th class="r">Std β</th><th class="r">Prior std β</th><th class="r">Factor 1σ / day</th><th class="r">Impact of 1σ</th><th class="r">THB / share</th><th class="r">Mkt cap (THB mn)</th></tr></thead><tbody>` +
+    ord.map((j, r) => { const f = att.facs[j], b = L.beta[j + 1], imp = b * L.sx[j]; return `<tr><td class="muted">${r + 1}</td><td>${f.label}</td><td><span class="pill">${f.cat}</span></td><td class="r num">${F.sgn(b, 4)} / ${f.unit}</td><td class="r num ${Math.abs(L.t[j + 1]) >= 2 ? "sig" : "muted"}">${F.n(L.t[j + 1], 2)}</td><td class="r num">${F.sgn(L.stdBeta[j], 3)}</td><td class="r num muted">${Pr ? F.sgn(Pr.stdBeta[j], 3) : "—"}</td><td class="r num">${F.n(L.sx[j], 2)} ${f.unit}</td><td class="r num ${cls(imp)}">${F.sgn(imp, 2, "%")}</td><td class="r num">${F.sgn(imp / 100 * price, 3)}</td><td class="r num">${F.sgn(imp / 100 * price * sh, 0)}</td></tr>`; }).join("") + `</tbody></table>`;
+
+  // scenario
+  $("#scen-presets").innerHTML = PRESETS.map((p, i) => `<button class="btn" data-preset="${i}">${p.name}</button>`).join("");
+  $("#scen-grid").innerHTML = att.facs.map(f => { const [a, b, st] = SC_RANGE[f.unit] || [-5, 5, 0.1]; const v = SCEN[f.key] || 0;
+    return `<label for="sc-${f.key}">${f.label}<div class="u">β ${F.sgn(L.beta[att.facs.indexOf(f) + 1], 4)} per ${f.unit}</div></label><input type="range" id="sc-${f.key}" data-sc="${f.key}" min="${a}" max="${b}" step="${st}" value="${v}"><input type="number" data-scn="${f.key}" step="${st}" value="${v}" aria-label="${f.label} shock in ${f.unit}">`; }).join("");
+  updateScenario();
+  // rolling beta
+  const sel = $("#sel-roll"); const prev = sel.value;
+  sel.innerHTML = att.facs.map((f, j) => `<option value="${j}">${f.label}</option>`).join(""); if (prev && +prev < att.facs.length) sel.value = prev;
+  renderRolling();
+  renderValuation();
+}
+function updateScenario() {
+  const att = RES.att, L = att.last, rows = DATA.rows, price = rows[rows.length - 1].ap, sh = PARAMS.shares;
+  let tot = 0; att.facs.forEach((f, j) => { tot += (SCEN[f.key] || 0) * L.beta[j + 1]; });
+  const band = L.residSd, dP = tot / 100 * price;
+  $("#scen-out").innerHTML = [
+    { l: "Estimated AP move", v: `<span class="${cls(tot)}">${F.sgn(tot, 2, "%")}</span>`, d: `±${F.n(band, 2)}% (1σ idiosyncratic)` },
+    { l: "Price impact", v: `${F.sgn(dP, 2)} <span style="font-size:13px;color:var(--text2)">THB</span>`, d: `${F.n(price)} → ${F.n(price + dP)} THB` },
+    { l: "Market-cap impact", v: `${F.sgn(dP * sh, 0)} <span style="font-size:13px;color:var(--text2)">THB mn</span>`, d: `${F.n(sh, 0)} mn shares` },
+  ].map(x => `<div class="kpi"><div class="lbl">${x.l}</div><div class="out num">${x.v}</div><div class="det">${x.d}</div></div>`).join("");
+}
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.sc) { SCEN[t.dataset.sc] = +t.value; const n = document.querySelector(`[data-scn="${t.dataset.sc}"]`); if (n) n.value = t.value; updateScenario(); }
+  if (t.dataset.scn) { SCEN[t.dataset.scn] = +t.value || 0; const r = document.querySelector(`[data-sc="${t.dataset.scn}"]`); if (r) r.value = t.value; updateScenario(); }
+  if (t.id === "inp-shares") { const v = +t.value; if (v > 0) { PARAMS.shares = v; renderDriversTableOnly(); } }
+  if (t.closest && t.closest("#val-form")) renderValuationOut();
+});
+let shareTimer; function renderDriversTableOnly() { clearTimeout(shareTimer); shareTimer = setTimeout(() => { const keep = document.activeElement && document.activeElement.id; renderDrivers(); if (keep) { const el = document.getElementById(keep); if (el) el.focus(); } }, 300); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-preset]"); if (!b) return; const p = PRESETS[+b.dataset.preset]; Object.keys(SCEN).forEach(k => delete SCEN[k]); Object.assign(SCEN, p.s); renderDrivers(); });
+function renderRolling() {
+  const att = RES.att, rows = DATA.rows, N = rows.length, j = +$("#sel-roll").value || 0, f = att.facs[j]; if (!f) return;
+  const s0 = rangeStart(N, PARAMS.window); const vals = att.hist.slice(s0).map(h => h ? h.stdBeta[j] : NaN);
+  const tv = att.hist.slice(s0).map(h => h ? h.t[j + 1] : NaN);
+  lineChart($("#ch-roll"), { dates: rows.slice(s0).map(r => r.date), height: 260, fmt: v => v.toFixed(2), series: [{ name: "Std β — " + f.short, values: vals, color: "var(--s1)" }], hlines: [{ y: 0, color: "var(--axis)" }], tipExtra: i => `<div class="r"><span>t-stat</span><b class="num">${F.n(tv[i], 2)}</b></div>`, aria: "Rolling standardized beta" });
+}
+document.addEventListener("change", e => { if (e.target.id === "sel-roll") renderRolling(); });
+const VAL = { rf: null, beta: null, erp: 7.0, roe: 12.0, g: 3.0, bvps: 13.0, shock: 25 };
+function renderValuation() {
+  const rows = DATA.rows, N = rows.length, lastTh = [...rows].reverse().find(r => isNum(r.th10y));
+  if (VAL.rf == null) VAL.rf = lastTh ? +lastTh.th10y.toFixed(2) : 2.5;
+  if (VAL.beta == null) VAL.beta = isNum(RES.att.mktBeta) ? +RES.att.mktBeta.toFixed(2) : 1.0;
+  const fields = [["rf", "Risk-free r_f (%)", "Latest TH 10Y in data", 0.01], ["beta", "β vs SET", "250-day regression", 0.01], ["erp", "Equity risk premium (%)", "Assumption", 0.1], ["roe", "Sustainable ROE (%)", "Assumption", 0.1], ["g", "Long-term growth g (%)", "Assumption", 0.1], ["bvps", "Book value / share (THB)", "Enter latest from financials", 0.01], ["shock", "Rate shock Δr_f (bp)", "Applied to r_f", 1]];
+  $("#val-form").innerHTML = fields.map(([k, l, h, st]) => `<label>${l}<input type="number" step="${st}" data-val="${k}" value="${VAL[k]}"><span class="h">${h}</span></label>`).join("");
+  renderValuationOut();
+}
+function renderValuationOut() {
+  $$("[data-val]").forEach(i => { VAL[i.dataset.val] = +i.value; });
+  const price = DATA.rows[DATA.rows.length - 1].ap;
+  const ke = VAL.rf + VAL.beta * VAL.erp, ke2 = ke + VAL.shock / 100;
+  const pbv = (VAL.roe - VAL.g) / (ke - VAL.g), pbv2 = (VAL.roe - VAL.g) / (ke2 - VAL.g), ok = ke > VAL.g && ke2 > VAL.g;
+  const fair = pbv * VAL.bvps, fair2 = pbv2 * VAL.bvps;
+  $("#val-out").innerHTML = (ok ? [
+    { l: "Cost of equity Kₑ", v: F.n(ke, 2) + "%", d: `after shock ${F.n(ke2, 2)}%` },
+    { l: "Justified P/BV", v: F.n(pbv, 2) + "×", d: `after shock ${F.n(pbv2, 2)}× (${F.sgn((pbv2 / pbv - 1) * 100, 1, "%")})` },
+    { l: "Justified value / share", v: F.n(fair, 2) + " THB", d: `after shock ${F.n(fair2, 2)} THB` },
+    { l: "Market-implied P/BV", v: F.n(price / VAL.bvps, 2) + "×", d: `at ${F.n(price)} THB close` },
+    { l: "Fair-value Δ, mkt cap", v: F.sgn((fair2 - fair) * PARAMS.shares, 0) + " mn", d: "THB, from the rate shock (valuation channel)" },
+  ] : [{ l: "Invalid inputs", v: "Kₑ ≤ g", d: "Gordon model requires Kₑ > g" }]).map(x => `<div class="kpi"><div class="lbl">${x.l}</div><div class="val num" style="font-size:22px">${x.v}</div><div class="det">${x.d}</div></div>`).join("");
+}
+
+/* ---------- REGIME ---------- */
+const PFIELDS = [
+  ["horizon", "Label horizon h (days)", "Forward window for Bear event", 1, 3, 40],
+  ["k", "Bear depth k (× σ√h)", "Higher = rarer, deeper Bear", 0.1, 0, 2],
+  ["lambda", "Cost ratio λ = C_FN / C_FP", "θ* = 1/(1+λ)", 0.1, 0.2, 5],
+  ["band", "Hysteresis band b", "Enter θ*+b, exit θ*−b", 0.01, 0, 0.2],
+  ["smooth", "EMA smoothing span s", "Days", 1, 1, 20],
+  ["l2", "L2 penalty λ₂", "Regularisation strength", 1, 0, 200],
+  ["step", "Refit every (days)", "Walk-forward step", 1, 5, 120],
+  ["embargo", "Embargo e (days)", "Gap after purge", 1, 0, 30],
+  ["minTrain", "Min. training days", "Before first prediction", 10, 120, 800],
+  ["window", "Attribution window (days)", "Rolling OLS", 10, 40, 500],
+  ["cost", "Transaction cost (bp / side)", "Backtest", 1, 0, 100],
+];
+function renderRegime() {
+  const rm = RES.rm, rows = DATA.rows, N = rows.length, m = rm.metrics;
+  $("#param-form").innerHTML = PFIELDS.map(([k, l, h, st, mn, mx]) => `<label>${l}<input type="number" data-p="${k}" step="${st}" min="${mn}" max="${mx}" value="${PARAMS[k]}"><span class="h">${h}</span></label>`).join("");
+  $("#theta-note").innerHTML = `θ* = 1/(1+${F.n(PARAMS.lambda, 2)}) = <b>${F.n(rm.theta ?? 1 / (1 + PARAMS.lambda), 3)}</b> · enter ≥ ${F.n(rm.enter, 2)} · exit ≤ ${F.n(rm.exit, 2)} · data-implied λ̂ = ${F.n(rm.lambdaHat, 2)}`;
+  if (rm.err || !m) { $("#reg-kpis").innerHTML = `<div class="card"><p class="note">${esc(rm.err || "Model unavailable.")}</p></div>`; ["#ch-pbear", "#ch-equity", "#ch-cal", "#ch-coef", "#bt-table", "#cm-table", "#model-card"].forEach(s => $(s).innerHTML = ""); return; }
+  const st = rm.reg[N - 1];
+  const kp = [
+    { l: "Current regime", v: regimeBadge(st), d: `P̃(Bear) ${F.pctD(rm.ps[N - 1])} · raw ${F.pctD(rm.p[N - 1])}` },
+    { l: "OOS AUC", v: F.n(m.auc, 3), d: `0.5 = coin flip · n = ${m.n} days ${skillFlag(m)}` },
+    { l: "Brier skill score", v: F.n(m.bss, 3), d: `vs climatology (base rate ${F.pctD(m.base)}); >0 = adds value` },
+    { l: "Precision / recall", v: `${F.pctD(m.precision, 0)} / ${F.pctD(m.recall, 0)}`, d: `of Bear calls (regime state vs label)` },
+    { l: "Regime switches", v: rm.switches, d: `over ${N - rm.firstPred} OOS days · ${rm.refits} refits` },
+  ];
+  $("#reg-kpis").innerHTML = kp.map(x => `<div class="card kpi"><div class="lbl">${x.l}</div><div class="val num">${x.v}</div><div class="det">${x.d}</div></div>`).join("");
+  const s0 = rangeStart(N, rm.firstPred), dates = rows.slice(s0).map(r => r.date);
+  lineChart($("#ch-pbear"), {
+    dates, height: 300, fmt: v => (v * 100).toFixed(0) + "%", yMin: 0, yMax: 1, aria: "Probability of bear regime",
+    series: [{ name: "P(Bear) raw", values: rm.p.slice(s0), color: "var(--muted)", width: 1, opacity: 0.8 }, { name: "P̃(Bear) smoothed", values: rm.ps.slice(s0), color: "var(--s1)", width: 2.5 }],
+    hlines: [{ y: rm.enter, label: `Enter Bear ${F.pctD(rm.enter, 0)}`, color: "var(--crit)" }, { y: rm.exit, label: `Exit to Bull ${F.pctD(rm.exit, 0)}`, color: "var(--good)" }],
+    bands: bandsFrom(rm.reg, s0, N), bandLegend: "Bear regime", tipFmt: v => (v * 100).toFixed(1) + "%",
+    tipExtra: i => { const j = s0 + i; return `<div class="r"><span>Regime</span><b>${rm.reg[j] === "Bear" ? "▼ Bear" : "▲ Bull"}</b></div><div class="r"><span>Realised label</span><b>${isNum(rm.y[j]) ? (rm.y[j] ? "Bear" : "Not Bear") : "pending"}</b></div>`; },
+  });
+  // backtest
+  const bt = rm.bt;
+  if (bt) {
+    const b0 = Math.max(bt.start, rangeStart(N)), rs = bt.eqS[b0] / 100, rb = bt.eqB[b0] / 100;
+    lineChart($("#ch-equity"), { dates: rows.slice(b0).map(r => r.date), height: 260, fmt: v => v.toFixed(0), aria: "Equity curves",
+      series: [{ name: "Regime filter", values: bt.eqS.slice(b0).map(v => v / rs), color: "var(--s1)", last: F.n(bt.eqS[N - 1] / rs, 1) }, { name: "Buy & hold", values: bt.eqB.slice(b0).map(v => v / rb), color: "var(--s2)", last: F.n(bt.eqB[N - 1] / rb, 1) }],
+      hlines: [{ y: 100, color: "var(--axis)" }], bands: bandsFrom(rm.reg, b0, N), tipFmt: v => v.toFixed(1) });
+    $("#bt-sub").textContent = `Indexed to 100 at range start. Signal at close t → trade at close t+1 → earns t+2. ${PARAMS.cost} bp per side. Price-only, gross of dividends; cash earns 0. Full-period stats below.`;
+    const row = (n, s) => `<tr><td>${n}</td><td class="r num">${F.sPctD(s.tot)}</td><td class="r num">${F.sPctD(s.cagr)}</td><td class="r num">${F.pctD(s.vol)}</td><td class="r num">${F.n(s.sharpe, 2)}</td><td class="r num">${F.pctD(s.mdd)}</td></tr>`;
+    $("#bt-table").innerHTML = `<table class="t"><thead><tr><th>Strategy</th><th class="r">Total</th><th class="r">CAGR</th><th class="r">Vol</th><th class="r">Sharpe*</th><th class="r">Max DD</th></tr></thead><tbody>${row("Regime filter", bt.strat)}${row("Buy & hold", bt.bh)}</tbody></table><p class="note">Time in market ${F.pctD(bt.timeIn, 0)} · ${bt.trades} trades. *Sharpe with r_f = 0. A single backtest path is weak evidence — see Governance.</p>`;
+  }
+  calChart($("#ch-cal"), m.cal);
+  $("#cm-table").innerHTML = `<table class="t cm"><thead><tr><th></th><th class="r">Realised Bear</th><th class="r">Realised not Bear</th></tr></thead><tbody><tr><td style="text-align:left">Called ▼ Bear</td><td>${m.tp} <span class="note">TP</span></td><td>${m.fp} <span class="note">FP</span></td></tr><tr><td style="text-align:left">Called ▲ Bull</td><td>${m.fn} <span class="note">FN</span></td><td>${m.tn} <span class="note">TN</span></td></tr></tbody></table><p class="note">Accuracy ${F.pctD(m.accuracy, 0)} · log-loss ${F.n(m.logloss, 3)} · Brier ${F.n(m.brier, 3)}</p>`;
+  if (rm.lastModel) {
+    const items = rm.feats.map((f, j) => ({ label: f.label, value: rm.lastModel.w[j + 1], tip: `<div class='h'>${f.label}</div><div class='r'><span>Category</span><b>${f.cat}</b></div><div class='r'><span>Coefficient (per 1σ)</span><b>${F.sgn(rm.lastModel.w[j + 1], 3)}</b></div><div class='r'><span>Odds ratio</span><b>${F.n(Math.exp(rm.lastModel.w[j + 1]), 2)}×</b></div>` })).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    divBars($("#ch-coef"), items, { fmt: v => F.sgn(v, 3), posColor: "var(--neg)", negColor: "var(--pos)", legend: [{ name: "Raises P(Bear)", color: "var(--neg)", box: true }, { name: "Lowers P(Bear)", color: "var(--pos)", box: true }], aria: "Model coefficients" });
+    const lm = rm.lastModel;
+    $("#model-card").innerHTML = `<table class="t"><tbody>
+      <tr><td>Purpose</td><td>Probability AP falls &gt; ${PARAMS.k}σ√h over the next ${PARAMS.horizon} trading days (from t+1)</td></tr>
+      <tr><td>Algorithm</td><td>L2-logistic regression (λ₂ = ${PARAMS.l2}), Newton-Raphson; ${rm.feats.length} pre-specified features</td></tr>
+      <tr><td>Validation</td><td>Expanding walk-forward, refit every ${PARAMS.step} days, purge ${PARAMS.horizon} + embargo ${PARAMS.embargo} days</td></tr>
+      <tr><td>Latest training set</td><td>${lm.trainN} days, ending ${dstr(rows[lm.trainEnd].date)}</td></tr>
+      <tr><td>Out-of-sample</td><td>${m.n} labelled days from ${dstr(rows[rm.firstPred].date)} · AUC ${F.n(m.auc, 3)} · BSS ${F.n(m.bss, 3)}</td></tr>
+      <tr><td>Decision rule</td><td>EMA(${PARAMS.smooth}) of P; θ* = ${F.n(rm.theta, 3)}; enter ${F.n(rm.enter, 2)} / exit ${F.n(rm.exit, 2)}</td></tr>
+      <tr><td>Data</td><td>${DATA.source === "synthetic" ? "Synthetic demo (not real prices)" : esc(DATA.name || "User CSV")} · ${N} days · to ${dstr(rows[N - 1].date)}</td></tr>
+      <tr><td>Known limits</td><td>Linear, single-stock, small sample; no event dummies; price-only backtest; non-stationary relationships</td></tr>
+      <tr><td>Version</td><td>Engine v${ENGINE_VERSION} · run ${RES.ts.toLocaleString()}</td></tr></tbody></table>`;
+  }
+}
+function readParams() {
+  const P = { ...PARAMS }; let bad = [];
+  $$("[data-p]").forEach(i => { const v = +i.value, mn = +i.min, mx = +i.max; if (!isFinite(v) || v < mn || v > mx) bad.push(i.closest("label").firstChild.textContent.trim()); else P[i.dataset.p] = ["horizon", "smooth", "step", "embargo", "minTrain", "window"].includes(i.dataset.p) ? Math.round(v) : v; });
+  if (bad.length) { alert("Out-of-range value(s): " + bad.join(", ")); return null; }
+  return P;
+}
+document.addEventListener("click", e => {
+  if (e.target.id === "btn-apply") { const P = readParams(); if (P) { PARAMS = P; recompute(); } }
+  if (e.target.id === "btn-reset") { PARAMS = { ...DEFAULT_PARAMS, shares: PARAMS.shares }; recompute(); }
+});
+
+/* ---------- DATA ---------- */
+const PY = `# pip install yfinance pandas
+import yfinance as yf, pandas as pd
+
+tickers = {"ap_close": "AP.BK", "set_close": "^SET.BK", "usdthb": "THB=X",
+           "us10y": "^TNX", "brent": "BZ=F"}
+px = yf.download(list(tickers.values()), period="5y", auto_adjust=True)["Close"]
+df = px.rename(columns={v: k for k, v in tickers.items()})
+df["ap_volume"] = yf.download("AP.BK", period="5y")["Volume"]
+
+# Merge series not reliably on Yahoo (export from SETSMART / ThaiBMA / Bloomberg):
+#   propcon_close (SET PROPCON index), th10y (Thai 10Y yield, %), foreign_net (THB mn)
+ext = pd.read_csv("propcon_th10y_flows.csv", parse_dates=["date"]).set_index("date")
+df = df.join(ext, how="left")
+
+df = df[df["ap_close"].notna()]          # AP trading days define the calendar
+df.index.name = "date"
+df.reset_index().to_csv("stock_radar_input.csv", index=False, date_format="%Y-%m-%d")
+print(df.tail())`;
+function renderData() {
+  const rows = DATA.rows, N = rows.length;
+  $("#map-table").innerHTML = `<table class="t"><thead><tr><th>Field</th><th>Status</th><th>Detected header</th></tr></thead><tbody>${SCHEMA.map(c => { const h = DATA.mapping[c.key]; const used = c.key === "date" || rows.filter(r => isNum(r[c.key])).length / N > 0.8;
+    return `<tr><td>${c.label}${c.req ? ' <span class="pill">required</span>' : ""}</td><td>${h ? (used ? '<span class="dot ok" style="margin:0 6px 0 0"></span>Mapped' : '<span class="dot warn" style="margin:0 6px 0 0"></span>Sparse') : '<span class="dot info" style="margin:0 6px 0 0"></span>Not supplied'}</td><td class="mono">${h ? esc(h) : "—"}</td></tr>`; }).join("")}</tbody></table>`;
+  $("#dq").innerHTML = RES.dq.concat((DATA.warnings || []).map(w => ({ lvl: "warn", msg: w }))).map(d => `<li><span class="dot ${d.lvl}" aria-hidden="true"></span><span><b>${{ ok: "OK", warn: "Check", bad: "Fail", info: "Info" }[d.lvl]}</b> — ${esc(d.msg)}</span></li>`).join("");
+  const cols = ["ap", "propcon", "set", "apvol", "th10y", "us10y", "usdthb", "brent", "flow"];
+  $("#tail-table").innerHTML = `<table class="t"><thead><tr><th>Date</th>${cols.map(c => `<th class="r">${c}</th>`).join("")}</tr></thead><tbody>${rows.slice(-12).reverse().map(r => `<tr><td class="num">${dstr(r.date)}</td>${cols.map(c => `<td class="r num">${isNum(r[c]) ? (c === "apvol" || c === "flow" ? Math.round(r[c]).toLocaleString() : r[c]) : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  $("#py-snippet").textContent = PY;
+}
+function download(name, text) { const b = new Blob([text], { type: "text/csv" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function loadText(text, name) {
+  try { const d = parseCSV(text); if (d.rows.length < 300) throw new Error(`Only ${d.rows.length} valid rows — need ≥300 (≈500+ recommended).`); d.name = name; DATA = d; $("#load-msg").innerHTML = `Loaded <b>${esc(name)}</b>: ${d.rows.length} rows.`; recompute(); }
+  catch (err) { $("#load-msg").innerHTML = `<span style="color:var(--neg)">⚠ ${esc(err.message)}</span>`; }
+}
+function wireData() {
+  const fi = $("#file"), dz = $("#drop");
+  dz.addEventListener("click", e => { if (e.target !== fi) fi.click(); });
+  dz.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fi.click(); } });
+  fi.addEventListener("change", () => { const f = fi.files[0]; if (f) f.text().then(t => loadText(t, f.name)); fi.value = ""; });
+  ["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove("over"); }));
+  dz.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) f.text().then(t => loadText(t, f.name)); });
+  $("#btn-demo").addEventListener("click", () => { DATA = genSample(); $("#load-msg").textContent = "Synthetic demo loaded."; recompute(); });
+  $("#btn-template").addEventListener("click", () => download("stock_radar_template.csv", toCSV(genSample().rows.slice(-3))));
+  $("#btn-export").addEventListener("click", () => download(DATA.source === "synthetic" ? "stock_radar_synthetic_demo.csv" : "stock_radar_export.csv", toCSV(DATA.rows)));
+}
+
+/* ---------- METHOD ---------- */
+function renderMethod() { $("#m-lhat").textContent = isNum(RES.rm.lambdaHat) ? RES.rm.lambdaHat.toFixed(2) + (DATA.source === "synthetic" ? " (synthetic data)" : "") : "n/a"; }
+
+/* ---------- orchestration ---------- */
+const RENDER = { overview: renderOverview, drivers: renderDrivers, regime: renderRegime, data: renderData, method: renderMethod };
+function renderActive() { buildRangeButtons(); try { RENDER[ACTIVE](); } catch (err) { console.error(err); } }
+function switchTab(t) {
+  ACTIVE = t; $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  $$("section.tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + t)); renderActive(); window.scrollTo({ top: 0 });
+}
+function recompute() {
+  document.body.style.cursor = "progress";
+  setTimeout(() => { try { RES = runAll(DATA, PARAMS); renderHeader(); renderActive(); } catch (err) { console.error(err); alert("Computation failed: " + err.message); } document.body.style.cursor = ""; }, 10);
+}
+$$("nav.tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+$("#themeBtn").addEventListener("click", () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark"; renderActive(); });
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderActive, 150); });
+wireData();
+DATA = genSample();
+recompute();
+
+</script>
+</body>
+</html>
