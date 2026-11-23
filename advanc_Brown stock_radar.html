@@ -1,0 +1,716 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADVANC Stock Radar Analytics</title>
+<style>
+:root {
+  --bg:#0b1220;
+  --panel:#121d30;
+  --panel2:#18263b;
+  --line:#293951;
+  --text:#edf3fb;
+  --muted:#91a3ba;
+  --green:#26d69a;
+  --red:#ff687d;
+  --yellow:#f4c66a;
+  --blue:#68aaff;
+  --purple:#ad91ff;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+}
+header {
+  padding:25px 4%;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.brand h1 {margin:0;font-size:25px;letter-spacing:.4px}
+.brand p {margin:7px 0 0;color:var(--muted);font-size:13px}
+.header-right {text-align:right;color:var(--muted);font-size:12px}
+.container {max-width:1450px;margin:auto;padding:24px 4% 50px}
+.section-title {
+  font-size:17px;
+  margin:26px 0 14px;
+  font-weight:700;
+}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+}
+.card {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:18px;
+  min-width:0;
+}
+.metric-label {color:var(--muted);font-size:12px}
+.metric-value {font-size:27px;font-weight:750;margin:10px 0 5px}
+.metric-sub {font-size:12px;color:var(--muted)}
+.green {color:var(--green)}
+.red {color:var(--red)}
+.yellow {color:var(--yellow)}
+.blue {color:var(--blue)}
+.purple {color:var(--purple)}
+.layout {
+  display:grid;
+  grid-template-columns:1.3fr .7fr;
+  gap:14px;
+}
+.panel-title {
+  font-size:15px;
+  font-weight:700;
+  margin-bottom:16px;
+}
+.regime {
+  display:inline-flex;
+  padding:8px 13px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:.5px;
+}
+.regime.bull {background:#123c35;color:var(--green)}
+.regime.bear {background:#48212d;color:var(--red)}
+.regime.neutral {background:#473b20;color:var(--yellow)}
+.bar-row {
+  display:grid;
+  grid-template-columns:130px 1fr 60px;
+  gap:10px;
+  align-items:center;
+  margin:13px 0;
+  font-size:12px;
+}
+.bar-bg {height:9px;background:#26364d;border-radius:8px;overflow:hidden}
+.bar-fill {height:100%;border-radius:8px}
+input[type=range] {width:100%;accent-color:var(--blue)}
+.driver {
+  display:grid;
+  grid-template-columns:1fr 1.3fr 55px;
+  gap:12px;
+  align-items:center;
+  margin:17px 0;
+}
+.driver label {font-size:13px}
+.driver small {display:block;color:var(--muted);margin-top:4px;font-size:11px}
+.driver output {font-size:13px;text-align:right;font-weight:700}
+select,button {
+  background:var(--panel2);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:7px;
+  padding:9px 12px;
+}
+button {cursor:pointer}
+button:hover {border-color:var(--blue)}
+.actions {display:flex;gap:8px;flex-wrap:wrap}
+table {width:100%;border-collapse:collapse;font-size:12px}
+th,td {padding:11px 8px;border-bottom:1px solid var(--line);text-align:left}
+th {color:var(--muted);font-weight:600}
+.chart-wrap {height:250px;position:relative}
+canvas {width:100%;height:100%}
+.note {color:var(--muted);font-size:11px;line-height:1.6}
+.disclaimer {
+  margin-top:20px;
+  padding:15px;
+  border:1px solid #67542b;
+  background:#282316;
+  color:#e9d49d;
+  border-radius:10px;
+  font-size:12px;
+  line-height:1.6;
+}
+.status-dot {
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--green);margin-right:6px;
+}
+.footer {margin-top:30px;color:var(--muted);font-size:11px;text-align:center}
+@media(max-width:900px) {
+  .grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .layout {grid-template-columns:1fr}
+}
+@media(max-width:550px) {
+  .grid {grid-template-columns:1fr 1fr}
+  .metric-value {font-size:22px}
+  .driver {grid-template-columns:1fr 1fr 42px}
+  .bar-row {grid-template-columns:100px 1fr 45px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>ADVANC <span class="blue">STOCK RADAR</span></h1>
+    <p>Telecom & Digital Infrastructure | Quantitative Analytics Dashboard</p>
+  </div>
+  <div class="header-right">
+    <div><span class="status-dot"></span>MODEL SIMULATION ACTIVE</div>
+    <div id="dateLabel"></div>
+    <div>SET: ADVANC | THB</div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="section-title">Market Overview</div>
+  <div class="grid">
+    <div class="card">
+      <div class="metric-label">REFERENCE SHARE PRICE</div>
+      <div class="metric-value" id="price">285.00</div>
+      <div class="metric-sub">THB | Illustrative reference price</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">MODEL EXPECTED RETURN</div>
+      <div class="metric-value green" id="expectedReturn">+0.00%</div>
+      <div class="metric-sub">Estimated one-day return</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">BULL PROBABILITY</div>
+      <div class="metric-value blue" id="bullProb">50.0%</div>
+      <div class="metric-sub">Model-implied probability</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">RISK REGIME</div>
+      <div class="metric-value" id="regimeText">NEUTRAL</div>
+      <div class="metric-sub" id="regimeDescription">Waiting for stronger signal</div>
+    </div>
+  </div>
+
+  <div class="section-title">Radar Intelligence</div>
+  <div class="layout">
+    <div class="card">
+      <div class="panel-title">Bull / Bear Signal Strength</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <div>
+          <div class="metric-label">CURRENT MARKET REGIME</div>
+          <div style="margin-top:9px"><span class="regime neutral" id="regimeBadge">NEUTRAL</span></div>
+        </div>
+        <div style="text-align:right">
+          <div class="metric-label">MODEL CONFIDENCE</div>
+          <div class="metric-value" style="font-size:24px" id="confidence">50%</div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <span>Bullish signal</span>
+        <div class="bar-bg"><div class="bar-fill" id="bullBar" style="width:50%;background:var(--green)"></div></div>
+        <strong id="bullBarText">50%</strong>
+      </div>
+      <div class="bar-row">
+        <span>Bearish signal</span>
+        <div class="bar-bg"><div class="bar-fill" id="bearBar" style="width:50%;background:var(--red)"></div></div>
+        <strong id="bearBarText">50%</strong>
+      </div>
+      <div class="bar-row">
+        <span>Signal intensity</span>
+        <div class="bar-bg"><div class="bar-fill" id="intensityBar" style="width:0%;background:var(--blue)"></div></div>
+        <strong id="intensityText">0%</strong>
+      </div>
+      <p class="note">The model combines the selected daily drivers into an illustrative directional score. The regime uses separate entry and exit thresholds to reduce unnecessary switching.</p>
+    </div>
+
+    <div class="card">
+      <div class="panel-title">Risk Dashboard</div>
+      <div class="metric-label">ESTIMATED ONE-DAY VOLATILITY</div>
+      <div class="metric-value yellow" id="volatility">1.50%</div>
+      <div class="metric-label" style="margin-top:18px">APPROXIMATE 95% VALUE AT RISK</div>
+      <div class="metric-value red" id="var">-2.47%</div>
+      <div class="metric-label" style="margin-top:18px">EXPECTED PRICE CHANGE</div>
+      <div class="metric-value" id="priceChange">0.00 THB</div>
+      <p class="note">VaR is a simplified normal-distribution approximation, not a guarantee or maximum possible loss.</p>
+    </div>
+  </div>
+
+  <div class="section-title">Daily Independent Variable Control Panel</div>
+  <div class="layout">
+    <div class="card">
+      <div class="panel-title">ADVANC Fundamental & Market Drivers</div>
+      <p class="note">Adjust the daily driver values. Positive values indicate favorable conditions; negative values indicate unfavorable conditions. All inputs are illustrative standardized scores.</p>
+
+      <div id="drivers"></div>
+
+      <div class="actions" style="margin-top:20px">
+        <button onclick="resetDrivers()">Reset baseline</button>
+        <button onclick="applyBullScenario()">Bull scenario</button>
+        <button onclick="applyBearScenario()">Bear scenario</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="panel-title">Driver Contribution Analysis</div>
+      <div id="contributions"></div>
+      <p class="note">Contribution represents the modeled influence of each factor on the estimated return. It is not a measured causal effect.</p>
+    </div>
+  </div>
+
+  <div class="section-title">Scenario Analysis</div>
+  <div class="layout">
+    <div class="card">
+      <div class="panel-title">Illustrative Return Distribution</div>
+      <div class="chart-wrap"><canvas id="scenarioChart"></canvas></div>
+      <p class="note">The chart shows a simplified scenario distribution around the model's expected return. It is not a forecast distribution fitted to historical ADVANC returns.</p>
+    </div>
+    <div class="card">
+      <div class="panel-title">Scenario Summary</div>
+      <table>
+        <thead><tr><th>Scenario</th><th>Return</th><th>Price</th></tr></thead>
+        <tbody>
+          <tr><td class="green">Bull case</td><td id="bullReturn">+0.00%</td><td id="bullPrice">285.00</td></tr>
+          <tr><td>Base case</td><td id="baseReturn">+0.00%</td><td id="basePrice">285.00</td></tr>
+          <tr><td class="red">Bear case</td><td id="bearReturn">-0.00%</td><td id="bearPrice">285.00</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:22px">
+        <div class="metric-label">REFERENCE PRICE CONTROL (THB)</div>
+        <input type="range" id="priceSlider" min="150" max="450" value="285" step="1">
+        <div class="metric-value" style="font-size:22px" id="priceSliderValue">285.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Model Configuration & Governance</div>
+  <div class="layout">
+    <div class="card">
+      <div class="panel-title">Model Parameters</div>
+      <div class="driver">
+        <label for="bullThreshold">Bull entry threshold<small>Directional score</small></label>
+        <input type="range" id="bullThreshold" min="0.1" max="1.5" step="0.05" value="0.45">
+        <output id="bullThresholdValue">0.45</output>
+      </div>
+      <div class="driver">
+        <label for="bearThreshold">Bear entry threshold<small>Directional score</small></label>
+        <input type="range" id="bearThreshold" min="-1.5" max="-0.1" step="0.05" value="-0.45">
+        <output id="bearThresholdValue">-0.45</output>
+      </div>
+      <div class="driver">
+        <label for="sensitivity">Model sensitivity<small>Return response multiplier</small></label>
+        <input type="range" id="sensitivity" min="0.25" max="2" step="0.05" value="1">
+        <output id="sensitivityValue">1.00x</output>
+      </div>
+      <p class="note">Changing these parameters changes the illustrative model output. They are not optimized or statistically validated parameters.</p>
+    </div>
+
+    <div class="card">
+      <div class="panel-title">Governance Checklist</div>
+      <table>
+        <tbody>
+          <tr><td>Model purpose</td><td>Daily directional screening</td></tr>
+          <tr><td>Input frequency</td><td>Daily / user-entered</td></tr>
+          <tr><td>Data connection</td><td class="yellow">Not connected</td></tr>
+          <tr><td>Model training</td><td class="yellow">Not performed</td></tr>
+          <tr><td>Backtesting</td><td class="yellow">Not performed</td></tr>
+          <tr><td>Execution</td><td>Human decision required</td></tr>
+          <tr><td>Version</td><td>Demo 1.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important model limitation:</strong> This dashboard is a prototype using illustrative coefficients, synthetic scenarios and manually adjusted inputs. It does not retrieve live SET prices, company financial statements, news, analyst estimates or macroeconomic data. It has not been trained, calibrated or backtested on historical ADVANC data. Do not use its outputs as standalone investment advice or as an automated trading signal.
+  </div>
+
+  <div class="footer">
+    ADVANC STOCK RADAR ANALYTICS | DEMONSTRATION MODEL | NOT INVESTMENT ADVICE
+  </div>
+</main>
+
+<script>
+const referencePrice = 285;
+let currentRegime = "NEUTRAL";
+
+const factors = [
+  {
+    id:"revenue",
+    name:"Revenue Growth",
+    description:"Service revenue and subscriber growth",
+    weight:0.22,
+    value:0
+  },
+  {
+    id:"arpu",
+    name:"ARPU Momentum",
+    description:"Average revenue per user",
+    weight:0.18,
+    value:0
+  },
+  {
+    id:"competition",
+    name:"Competition",
+    description:"Pricing pressure and market intensity",
+    weight:0.15,
+    value:0
+  },
+  {
+    id:"cost",
+    name:"Cost & Efficiency",
+    description:"Operating cost and EBITDA margin",
+    weight:0.12,
+    value:0
+  },
+  {
+    id:"capex",
+    name:"CAPEX & Investment",
+    description:"Network investment and cash-flow burden",
+    weight:0.10,
+    value:0
+  },
+  {
+    id:"rates",
+    name:"Interest Rate Environment",
+    description:"Financing cost and discount-rate conditions",
+    weight:0.08,
+    value:0
+  },
+  {
+    id:"market",
+    name:"SET Market Momentum",
+    description:"Broad market direction",
+    weight:0.08,
+    value:0
+  },
+  {
+    id:"sentiment",
+    name:"Investor Sentiment",
+    description:"News flow and institutional positioning",
+    weight:0.07,
+    value:0
+  }
+];
+
+const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
+const pct = v => (v>=0?"+":"")+v.toFixed(2)+"%";
+const money = v => v.toFixed(2);
+
+function renderDrivers() {
+  const container = document.getElementById("drivers");
+  container.innerHTML = "";
+
+  factors.forEach(f => {
+    const div = document.createElement("div");
+    div.className = "driver";
+    div.innerHTML = `
+      <label for="${f.id}">
+        ${f.name}
+        <small>${f.description}</small>
+      </label>
+      <input type="range" id="${f.id}" min="-2" max="2" step="0.1" value="${f.value}">
+      <output id="${f.id}Value">${f.value.toFixed(1)}</output>
+    `;
+    container.appendChild(div);
+
+    document.getElementById(f.id).addEventListener("input", e => {
+      f.value = Number(e.target.value);
+      document.getElementById(f.id+"Value").textContent = f.value.toFixed(1);
+      updateDashboard();
+    });
+  });
+}
+
+function calculateModel() {
+  let score = 0;
+  let contributionSum = 0;
+
+  factors.forEach(f => {
+    f.contribution = f.weight * f.value;
+    score += f.contribution;
+    contributionSum += Math.abs(f.contribution);
+  });
+
+  const sensitivity = Number(document.getElementById("sensitivity").value);
+  const expectedReturn = clamp(score * 0.75 * sensitivity,-5,5);
+
+  // Logistic transformation of the directional score.
+  const bullProbability = 100 / (1 + Math.exp(-score * 1.7));
+
+  // Illustrative volatility responds to the absolute driver dispersion.
+  const dispersion = factors.reduce((sum,f) => sum + Math.abs(f.value),0) / factors.length;
+  const volatility = clamp(1.2 + dispersion * 0.12,0.8,2.5);
+
+  return {
+    score,
+    expectedReturn,
+    bullProbability,
+    volatility,
+    contributionSum
+  };
+}
+
+function updateRegime(score) {
+  const bullThreshold = Number(document.getElementById("bullThreshold").value);
+  const bearThreshold = Number(document.getElementById("bearThreshold").value);
+
+  // Hysteresis: higher threshold to enter a regime than to remain in it.
+  if (currentRegime === "BULL") {
+    if (score < bullThreshold * 0.55) currentRegime = "NEUTRAL";
+  } else if (currentRegime === "BEAR") {
+    if (score > bearThreshold * 0.55) currentRegime = "NEUTRAL";
+  } else {
+    if (score >= bullThreshold) currentRegime = "BULL";
+    else if (score <= bearThreshold) currentRegime = "BEAR";
+  }
+
+  const badge = document.getElementById("regimeBadge");
+  badge.textContent = currentRegime;
+  badge.className = "regime " + currentRegime.toLowerCase();
+
+  const regimeText = document.getElementById("regimeText");
+  regimeText.textContent = currentRegime;
+  regimeText.className = "metric-value " +
+    (currentRegime==="BULL"?"green":currentRegime==="BEAR"?"red":"yellow");
+
+  document.getElementById("regimeDescription").textContent =
+    currentRegime==="BULL" ? "Positive directional conditions" :
+    currentRegime==="BEAR" ? "Negative directional conditions" :
+    "No decisive directional regime";
+}
+
+function updateContributions() {
+  const container = document.getElementById("contributions");
+  container.innerHTML = "";
+
+  const sorted = [...factors].sort((a,b) =>
+    Math.abs(b.contribution)-Math.abs(a.contribution)
+  );
+
+  const max = Math.max(...sorted.map(f=>Math.abs(f.contribution)),0.01);
+
+  sorted.forEach(f => {
+    const width = Math.abs(f.contribution)/max*100;
+    const color = f.contribution>=0?"var(--green)":"var(--red)";
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <div class="bar-row">
+        <span>${f.name}</span>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${width}%;background:${color}"></div>
+        </div>
+        <strong style="color:${color}">${f.contribution>=0?"+":""}${f.contribution.toFixed(2)}</strong>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateScenario(model,price) {
+  const base = model.expectedReturn;
+  const bull = clamp(base + model.volatility*1.5,-8,8);
+  const bear = clamp(base - model.volatility*1.5,-8,8);
+
+  document.getElementById("bullReturn").textContent = pct(bull);
+  document.getElementById("baseReturn").textContent = pct(base);
+  document.getElementById("bearReturn").textContent = pct(bear);
+
+  document.getElementById("bullPrice").textContent = money(price*(1+bull/100));
+  document.getElementById("basePrice").textContent = money(price*(1+base/100));
+  document.getElementById("bearPrice").textContent = money(price*(1+bear/100));
+
+  drawChart(base,model.volatility);
+}
+
+function drawChart(mean,volatility) {
+  const canvas = document.getElementById("scenarioChart");
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = rect.width*dpr;
+  canvas.height = rect.height*dpr;
+  ctx.scale(dpr,dpr);
+
+  const w = rect.width;
+  const h = rect.height;
+  ctx.clearRect(0,0,w,h);
+
+  const left = 35;
+  const right = 15;
+  const top = 15;
+  const bottom = 30;
+  const chartW = w-left-right;
+  const chartH = h-top-bottom;
+  const min = -6;
+  const max = 6;
+
+  function x(v){return left+(v-min)/(max-min)*chartW}
+  function y(v){return top+chartH-v*chartH/100}
+
+  ctx.strokeStyle = "#293951";
+  ctx.lineWidth = 1;
+  ctx.font = "10px Arial";
+  ctx.fillStyle = "#91a3ba";
+
+  for(let v=-6;v<=6;v+=2) {
+    const xx=x(v);
+    ctx.beginPath();
+    ctx.moveTo(xx,top);
+    ctx.lineTo(xx,top+chartH);
+    ctx.stroke();
+    ctx.fillText(v+"%",xx-8,h-9);
+  }
+
+  ctx.beginPath();
+  for(let i=0;i<=120;i++) {
+    const v=min+(max-min)*i/120;
+    const z=(v-mean)/volatility;
+    const density=Math.exp(-0.5*z*z);
+    const yy=top+chartH-density*chartH*0.88;
+    if(i===0)ctx.moveTo(x(v),yy);
+    else ctx.lineTo(x(v),yy);
+  }
+
+  ctx.lineTo(x(max),top+chartH);
+  ctx.lineTo(x(min),top+chartH);
+  ctx.closePath();
+  ctx.fillStyle="rgba(104,170,255,.18)";
+  ctx.fill();
+
+  ctx.beginPath();
+  for(let i=0;i<=120;i++) {
+    const v=min+(max-min)*i/120;
+    const z=(v-mean)/volatility;
+    const density=Math.exp(-0.5*z*z);
+    const yy=top+chartH-density*chartH*0.88;
+    if(i===0)ctx.moveTo(x(v),yy);
+    else ctx.lineTo(x(v),yy);
+  }
+  ctx.strokeStyle="#68aaff";
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  ctx.strokeStyle="#f4c66a";
+  ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.moveTo(x(mean),top);
+  ctx.lineTo(x(mean),top+chartH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle="#f4c66a";
+  ctx.fillText("Expected return",Math.min(x(mean)+5,w-105),top+12);
+}
+
+function updateDashboard() {
+  const model = calculateModel();
+  const price = Number(document.getElementById("priceSlider").value);
+
+  document.getElementById("expectedReturn").textContent = pct(model.expectedReturn);
+  document.getElementById("expectedReturn").className =
+    "metric-value "+(model.expectedReturn>=0?"green":"red");
+
+  document.getElementById("bullProb").textContent =
+    model.bullProbability.toFixed(1)+"%";
+
+  document.getElementById("confidence").textContent =
+    Math.max(model.bullProbability,100-model.bullProbability).toFixed(1)+"%";
+
+  document.getElementById("bullBar").style.width =
+    model.bullProbability+"%";
+  document.getElementById("bearBar").style.width =
+    (100-model.bullProbability)+"%";
+
+  document.getElementById("bullBarText").textContent =
+    model.bullProbability.toFixed(1)+"%";
+  document.getElementById("bearBarText").textContent =
+    (100-model.bullProbability).toFixed(1)+"%";
+
+  const intensity = Math.min(100,Math.abs(model.score)/1.5*100);
+  document.getElementById("intensityBar").style.width = intensity+"%";
+  document.getElementById("intensityText").textContent = intensity.toFixed(0)+"%";
+
+  document.getElementById("volatility").textContent =
+    model.volatility.toFixed(2)+"%";
+
+  document.getElementById("var").textContent =
+    "-"+(1.645*model.volatility-model.expectedReturn).toFixed(2)+"%";
+
+  document.getElementById("priceChange").textContent =
+    (price*model.expectedReturn/100).toFixed(2)+" THB";
+
+  document.getElementById("price").textContent = money(price);
+
+  updateRegime(model.score);
+  updateContributions();
+  updateScenario(model,price);
+}
+
+function resetDrivers() {
+  factors.forEach(f=>f.value=0);
+  currentRegime="NEUTRAL";
+  renderDrivers();
+  updateDashboard();
+}
+
+function applyBullScenario() {
+  const values = {
+    revenue:1.2,
+    arpu:1.4,
+    competition:0.8,
+    cost:0.7,
+    capex:0.3,
+    rates:0.5,
+    market:1.1,
+    sentiment:1.3
+  };
+  factors.forEach(f=>f.value=values[f.id]);
+  currentRegime="NEUTRAL";
+  renderDrivers();
+  updateDashboard();
+}
+
+function applyBearScenario() {
+  const values = {
+    revenue:-1.0,
+    arpu:-0.8,
+    competition:-1.5,
+    cost:-0.9,
+    capex:-1.2,
+    rates:-1.0,
+    market:-1.4,
+    sentiment:-1.3
+  };
+  factors.forEach(f=>f.value=values[f.id]);
+  currentRegime="NEUTRAL";
+  renderDrivers();
+  updateDashboard();
+}
+
+document.getElementById("priceSlider").addEventListener("input",e=>{
+  document.getElementById("priceSliderValue").textContent =
+    Number(e.target.value).toFixed(2);
+  updateDashboard();
+});
+
+["bullThreshold","bearThreshold","sensitivity"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",e=>{
+    const value=Number(e.target.value);
+    document.getElementById(id+"Value").textContent =
+      id==="sensitivity"?value.toFixed(2)+"x":value.toFixed(2);
+    updateDashboard();
+  });
+});
+
+document.getElementById("dateLabel").textContent =
+  "Dashboard date: "+new Date().toLocaleDateString();
+
+renderDrivers();
+updateDashboard();
+
+window.addEventListener("resize",()=>{
+  const model=calculateModel();
+  drawChart(model.expectedReturn,model.volatility);
+});
+</script>
+</body>
+</html>
